@@ -125,12 +125,3 @@ playerAccessor SecondPlayer = secondCards
 playerStateAccessor :: PlayerTag -> Lens' BattleState (Map CardPosition CardState)
 playerStateAccessor FirstPlayer = first
 playerStateAccessor SecondPlayer = second
-
-
-currentProperty :: PlayerTag -> CardPosition -> BattleSetting -> [BattleEffect] -> PropertySet
-currentProperty p c s e = applyEffect card
-    where card = lookup c (s ^. (playerAccessor p))
-          applyEffect Nothing = PropertySet 0 0 0 0 0 0
-          applyEffect (Just (Card q _)) = eff q
-          eff = foldl (.) id effectFunctions
-          effectFunctions = map (^. effect) $ filter ((onTarget p c) . (^. target)) e

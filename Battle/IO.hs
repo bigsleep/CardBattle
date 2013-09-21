@@ -33,3 +33,24 @@ createInput f = lift . Free . f $ \x -> Pure x
 
 createOutput :: (a -> Free BattleIO () -> BattleIO (Free BattleIO ())) -> a -> BattleMachine ()
 createOutput f x = lift . Free $ f x (Pure ())
+
+loadSetting :: BattleMachine (Maybe Int)
+loadSetting = createInput LoadSetting
+
+loadFirstPlayerCards :: BattleMachine (Map CardPosition Card)
+loadFirstPlayerCards = createInput LoadFirstPlayerCards
+
+loadSecondPlayerCards :: BattleMachine (Map CardPosition Card)
+loadSecondPlayerCards =createInput LoadSecondPlayerCards
+
+inputFirstPlayerCommand :: BattleMachine PlayerCommand
+inputFirstPlayerCommand = createInput InputFirstPlayerCommand
+
+inputSecondPlayerCommand :: BattleMachine PlayerCommand
+inputSecondPlayerCommand = createInput InputSecondPlayerCommand
+
+outputBattleState :: BattleState -> BattleMachine ()
+outputBattleState = createOutput OutputBattleState
+
+outputMessage :: String -> BattleMachine ()
+outputMessage = createOutput OutputMessage
