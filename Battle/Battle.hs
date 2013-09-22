@@ -8,7 +8,7 @@ import Data.Functor ()
 import Data.Maybe ()
 import Data.List (sortBy)
 import qualified Data.Ord as Ord (compare)
-import qualified Data.Map as M (Map, fold, lookup, findWithDefault, adjust, map)
+import qualified Data.Map as M (Map, fold, lookup, findWithDefault, adjust, map, mapWithKey)
 import qualified Data.Set as Set hiding (map, filter, foldl, insert)
 import Control.Lens hiding (Action)
 import Control.Monad (forM, when)
@@ -69,8 +69,7 @@ battleCommandCompare st es l r =
 type BattleTurn = RWS BattleSetting [String] BattleState ()
 
 execTurn :: [BattleCommand] -> BattleTurn
---execTurn cs = forM cs execCommand >> consumeTurn >> cutoffHpMp
-execTurn cs = return ()
+execTurn cs = forM cs execCommand >> consumeTurn >> cutoffHpMp
 
 execCommand :: BattleCommand -> BattleTurn
 execCommand (BattleCommand p (PlayerCommand c a)) = execCommand' p c a
@@ -85,3 +84,26 @@ currentProperties p c s e = applyEffect card
           applyEffect (Just (Card q _)) = eff q
           eff = foldl (.) id effectFunctions
           effectFunctions = map (^. effect) $ filter ((onTarget p c) . (^. target)) e
+
+consumeTurn :: BattleTurn
+consumeTurn = do
+    s <- get
+    let es = s ^. effects
+    let consumed = map consume es
+    let filtered = filter activeEffect consumed
+    put $ (s & effects .~ filtered) & remainingTurn %~ (fmap (1-))
+        where consume e = e & remaining %~ (fmap (1-))
+              activeEffect e = case (e ^. remaining) of
+                                    Nothing -> True
+                                    (Just n) -> n > 0
+cutoffHpMp :: BattleTurn
+cutoffHpMp = do
+    settings <- ask
+    state <- get
+    let effects' = state ^. effects
+    put $ (state & first %~ (cutoff settings effects' FirstPlayer)) & second %~ (cutoff settings effects' SecondPlayer)
+        where cutoff s e p cs = M.mapWithKey (cutoffCard s e p) cs
+              cutoffCard s e p k c = CardState (min (c ^. hp) maxHp') (min (c ^. mp) maxMp')
+                where properties' = currentProperties p k s e
+                      maxHp' = properties' ^. maxHp
+                      maxMp' = properties' ^. maxMp
