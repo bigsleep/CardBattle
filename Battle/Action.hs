@@ -11,9 +11,8 @@ import Control.Lens hiding (Action)
 
 currentProperties :: PlayerTag -> CardPosition -> BattleSetting -> [BattleEffect] -> PropertySet
 currentProperties p c s e = applyEffect card
-    where card = M.lookup c (s ^. (playerAccessor p))
-          applyEffect Nothing = PropertySet 0 0 0 0 0 0
-          applyEffect (Just (Card q _)) = eff q
+    where card = (s ^. (playerAccessor p)) M.! c
+          applyEffect (Card q _) = eff q
           eff = foldl (.) id effectFunctions
           effectFunctions = map (^. effect) $ filter ((onTarget p c) . (^. target)) e
 
@@ -32,4 +31,11 @@ execAction p c (Attack (TargetCard tp tc)) = do
         where inflictDamage k d m = M.adjust (decreaseHp d) k m
               decreaseHp d x = CardState (x ^. hp - d) (x ^. mp)
 
-
+-- Defense
+execAction p c Defense = do
+    settings <- ask
+    state <- get
+    let defense' = ((settings ^. playerAccessor p) M.! c) ^. (properties . defense)
+    let eff = (BattleEffect (Target (TargetCard p c)) (boostDefense defense') (Just 1))
+    put $ state & effects %~ (eff :)
+        where boostDefense d p = p & defense %~ (+d)
