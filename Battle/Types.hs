@@ -125,3 +125,5 @@ playerAccessor SecondPlayer = secondCards
 playerStateAccessor :: PlayerTag -> Lens' BattleState (Map CardPosition CardState)
 playerStateAccessor FirstPlayer = first
 playerStateAccessor SecondPlayer = second
+
+type BattleTurn = RWS BattleSetting [String] BattleState ()

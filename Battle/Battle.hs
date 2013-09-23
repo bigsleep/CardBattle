@@ -2,6 +2,7 @@ module Battle.Battle where
 
 import Battle.Types
 import Battle.IO
+import Battle.Action
 
 import Prelude hiding (lookup)
 import Data.Functor ()
@@ -60,13 +61,11 @@ battleCommandCompare st es l r =
         where la = l ^. command . action
               ra = r ^. command . action
               lp = l ^. player
-              rp = l ^. player
+              rp = r ^. player
               lc = l ^. command . card
-              rc = l ^. command . card
+              rc = r ^. command . card
               ls = (currentProperties lp lc st es) ^. speed
               rs = (currentProperties rp rc st es) ^. speed
-
-type BattleTurn = RWS BattleSetting [String] BattleState ()
 
 execTurn :: [BattleCommand] -> BattleTurn
 execTurn cs = forM cs execCommand >> consumeTurn >> cutoffHpMp
@@ -76,14 +75,6 @@ execCommand (BattleCommand p (PlayerCommand c a)) = execCommand' p c a
 
 execCommand' :: PlayerTag -> CardPosition -> Action -> BattleTurn
 execCommand' p c a = return ()
-
-currentProperties :: PlayerTag -> CardPosition -> BattleSetting -> [BattleEffect] -> PropertySet
-currentProperties p c s e = applyEffect card
-    where card = M.lookup c (s ^. (playerAccessor p))
-          applyEffect Nothing = PropertySet 0 0 0 0 0 0
-          applyEffect (Just (Card q _)) = eff q
-          eff = foldl (.) id effectFunctions
-          effectFunctions = map (^. effect) $ filter ((onTarget p c) . (^. target)) e
 
 consumeTurn :: BattleTurn
 consumeTurn = do
@@ -96,6 +87,7 @@ consumeTurn = do
               activeEffect e = case (e ^. remaining) of
                                     Nothing -> True
                                     (Just n) -> n > 0
+
 cutoffHpMp :: BattleTurn
 cutoffHpMp = do
     settings <- ask
