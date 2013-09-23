@@ -52,18 +52,10 @@ data PropertySet = PropertySet {
     _magic :: Int
     } deriving (Show)
 
-data MagicT =
-    BoostAttack TargetCard |
-    BoostDefense TargetCard |
-    BoostSpeed TargetCard |
-    BoostMagic TargetCard |
-    Heal TargetCard
-    deriving (Show, Eq, Ord)
-
 data Action =
     Defense |
     Attack TargetCard |
-    Magic MagicT
+    Heal Int Int TargetCard
     deriving (Show, Eq, Ord)
 
 data Card = Card {
@@ -108,7 +100,6 @@ data BattleCommand = BattleCommand {
 
 -- Lenses
 $(makeLenses ''PropertySet)
-$(makeLenses ''MagicT)
 $(makeLenses ''Action)
 $(makeLenses ''Card)
 $(makeLenses ''CardState)
