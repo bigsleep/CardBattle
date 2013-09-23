@@ -12,7 +12,7 @@ import Control.Lens hiding (Action)
 currentProperties :: PlayerTag -> CardPosition -> BattleSetting -> [BattleEffect] -> PropertySet
 currentProperties p c s e = applyEffect card
     where card = (s ^. (playerAccessor p)) M.! c
-          applyEffect (Card q _) = eff q
+          applyEffect (Card q) = eff q
           eff = foldl (.) id effectFunctions
           effectFunctions = map (^. effect) $ filter ((onTarget p c) . (^. target)) e
 

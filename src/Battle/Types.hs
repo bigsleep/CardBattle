@@ -58,8 +58,7 @@ data Action =
     deriving (Show, Eq, Ord)
 
 data Card = Card {
-    _properties :: PropertySet,
-    _skills :: Set Action
+    _properties :: PropertySet
     } deriving (Show)
 
 data CardState = CardState {

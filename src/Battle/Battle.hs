@@ -25,12 +25,14 @@ battle = do
     turns <- loadSetting
     fcs <- loadFirstPlayerCards
     scs <- loadSecondPlayerCards
-    put ((BattleSetting fcs scs turns), initializeBattleState fcs scs turns)
+    put ((BattleSetting fcs scs turns), initializeBattleState (BattleSetting fcs scs turns))
     whileM_ isRunning battleTurn
-        where initializeBattleState x y ts = BattleState (initCards x) (initCards y) [] ts
-              maxHp' x = x ^. properties . maxHp
-              maxMp' x = x ^. properties . maxMp
-              initCards c = M.map (\x -> CardState (maxHp' x) (maxMp' x)) c
+
+initializeBattleState :: BattleSetting -> BattleState
+initializeBattleState s = BattleState (initCards $ s ^. firstCards) (initCards $ s ^. secondCards) [] (s ^. maxTurn)
+    where maxHp' x = x ^. properties . maxHp
+          maxMp' x = x ^. properties . maxMp
+          initCards c = M.map (\x -> CardState (maxHp' x) (maxMp' x)) c
 
 isRunning :: BattleMachine Bool
 isRunning = do
