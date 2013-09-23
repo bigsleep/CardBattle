@@ -14,7 +14,6 @@ import Control.Monad.State.Class(get, put)
 import Control.Monad.Reader.Class(ask)
 import Control.Monad.Trans.RWS(RWS)
 import Control.Monad.Free()
-import System.Random()
 
 data PlayerTag = FirstPlayer | SecondPlayer deriving (Show, Eq, Ord, Enum)
 
