@@ -14,33 +14,25 @@ import Control.Monad.State.Class(get, put)
 import Control.Monad.Reader.Class(ask)
 import Control.Monad.Trans.RWS(RWS)
 import Control.Monad.Free()
+import Control.Monad.Error(ErrorT, Error, noMsg, strMsg)
 
-data PlayerTag = FirstPlayer | SecondPlayer deriving (Show, Eq, Ord, Enum)
+data Player = FirstPlayer | SecondPlayer deriving (Show, Eq, Ord, Enum)
 
-data CardPosition = Card1 | Card2 | Card3 deriving (Show, Eq, Ord, Enum)
+data Target =
+    TargetAll |
+    TargetTeam Player |
+    TargetCard Player Int deriving (Show, Eq, Ord)
 
-data Target = forall a. (TargetT a, Show a) => Target a
-data TargetAll = TargetAll deriving (Show, Eq)
-data TargetTeam = TargetTeam PlayerTag deriving (Show, Eq)
-data TargetCard = TargetCard PlayerTag CardPosition deriving (Show, Eq, Ord)
+data BattleErrorType =
+    OutOfRange |
+    UnknownError
+    deriving (Show, Eq, Enum)
 
-class TargetT a where
-    onTarget :: PlayerTag -> CardPosition -> a -> Bool
+data BattleError = BattleError BattleErrorType String deriving (Show, Eq)
 
-instance TargetT TargetAll where
-    onTarget _ _ TargetAll = True
-
-instance TargetT TargetTeam where
-    onTarget q _ (TargetTeam p) = p == q
-
-instance TargetT TargetCard where
-    onTarget q y (TargetCard p x) = p == q && x == y
-
-instance TargetT Target where
-    onTarget q y (Target x) = onTarget q y x
-
-instance Show Target where
-    show (Target x) = "Target " ++ show x
+instance Error BattleError where
+    noMsg = BattleError UnknownError ""
+    strMsg s = BattleError UnknownError s
 
 data PropertySet = PropertySet {
     _maxHp :: Int,
@@ -53,12 +45,26 @@ data PropertySet = PropertySet {
 
 data Action =
     Defense |
-    Attack TargetCard |
-    Heal Int Int TargetCard
+    Attack |
+    Heal Int Int |
+    Multi [Action]
     deriving (Show, Eq, Ord)
 
+type BattleTurn = ErrorT BattleError (RWS BattleSetting [String] BattleState)
+
+data TargetCapacity = forall a. (Targetable a, Show a) => TargetCapacity a
+
+class Targetable a where
+    canTarget :: BattleSetting -> BattleState -> Player -> Int -> a -> Target -> Bool
+
+instance Show TargetCapacity where
+    show (TargetCapacity a) = "TargetCapacity " ++ show a
+
+data Skill = Skill Action TargetCapacity deriving (Show)
+
 data Card = Card {
-    _properties :: PropertySet
+    _properties :: PropertySet,
+    _skills :: [Skill]
     } deriving (Show)
 
 data CardState = CardState {
@@ -73,28 +79,28 @@ data BattleEffect = BattleEffect {
     }
 
 data BattleSetting = BattleSetting {
-    _firstCards :: Map CardPosition Card,
-    _secondCards :: Map CardPosition Card,
+    _firstCards :: [Card],
+    _secondCards :: [Card],
     _maxTurn :: Maybe Int
     } deriving (Show)
 
 data BattleState = BattleState {
-    _first :: Map CardPosition CardState,
-    _second :: Map CardPosition CardState,
+    _first :: [CardState],
+    _second :: [CardState],
     _effects :: [BattleEffect],
     _remainingTurn :: Maybe Int
     }
 
 data PlayerCommand = PlayerCommand {
-    _card :: CardPosition,
-    _action :: Action
+    _cardIndex :: Int,
+    _skillIndex :: Int,
+    _targetIndex :: Int
     } deriving (Show, Eq, Ord)
 
 data BattleCommand = BattleCommand {
-    _player :: PlayerTag,
+    _player :: Player,
     _command :: PlayerCommand
     } deriving (Show, Eq, Ord)
-
 
 -- Lenses
 $(makeLenses ''PropertySet)
@@ -107,12 +113,10 @@ $(makeLenses ''PlayerCommand)
 $(makeLenses ''BattleEffect)
 $(makeLenses ''BattleCommand)
 
-playerAccessor :: PlayerTag -> Lens' BattleSetting (Map CardPosition Card)
+playerAccessor :: Player -> Lens' BattleSetting [Card]
 playerAccessor FirstPlayer = firstCards
 playerAccessor SecondPlayer = secondCards
 
-playerStateAccessor :: PlayerTag -> Lens' BattleState (Map CardPosition CardState)
+playerStateAccessor :: Player -> Lens' BattleState [CardState]
 playerStateAccessor FirstPlayer = first
 playerStateAccessor SecondPlayer = second
-
-type BattleTurn = RWS BattleSetting [String] BattleState ()

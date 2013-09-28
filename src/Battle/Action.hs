@@ -3,26 +3,30 @@ module Battle.Action where
 import Battle.Types
 
 import Prelude hiding (lookup)
+import qualified Data.List as L (find)
 import qualified Data.Map as M (adjust, lookup, (!))
 import Control.Monad.State ()
 import Control.Monad.State.Class (get, put)
 import Control.Monad.Reader.Class (ask)
+import Control.Monad.Error
+import Control.Monad.Error.Class
 import Control.Lens hiding (Action)
 
-currentProperties :: PlayerTag -> CardPosition -> BattleSetting -> [BattleEffect] -> PropertySet
-currentProperties p c s e = applyEffect card
-    where card = (s ^. (playerAccessor p)) M.! c
-          applyEffect (Card q) = eff q
-          eff = foldl (.) id effectFunctions
-          effectFunctions = map (^. effect) $ filter ((onTarget p c) . (^. target)) e
+currentProperties :: Player -> Int -> BattleTurn PropertySet
+currentProperties p c = do
+    e <- ask
+    s <- get
+    if length (cards e) > c
+        then return $ (applyEffect $ s ^. effects) (cards e !! c)
+        else throwError $ BattleError OutOfRange ("in currentProperties. arguments:" ++ show p ++ ", " ++ show c)
+    where cards a = (a ^. (playerAccessor p))
+          applyEffect x (Card q _) = eff x q
+          eff x = foldl (.) id (effectFunctions x)
+          effectFunctions x = map (^. effect) $ filter ((onTarget p c) . (^. target)) x
 
-canPerform :: CardState -> Action -> Bool
-execAction :: PlayerTag -> CardPosition -> Action -> BattleTurn
+--execAction :: Player -> Int -> Action -> Target -> BattleTurn
 
-canPerform _ (Attack _) = True
-canPerform _ Defense = True
-canPerform c (Heal a b _) = (c ^. mp) >= a
-
+{-
 execAction p c (Attack (TargetCard tp tc)) = do
     settings <- ask
     state <- get
@@ -55,3 +59,6 @@ execAction p c (Heal a b (TargetCard tp tc)) = do
         where updateCard f k m = M.adjust f k m
               increaseHp d x = x {_hp = (x ^. hp + d)}
               consumeMp q x = x {_mp = (x ^. mp) - q}
+-}
+
+
