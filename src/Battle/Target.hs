@@ -1,7 +1,7 @@
 {-# LANGUAGE TypeOperators #-}
 module Battle.Target where
 
-import Control.Applicative((<*>), (<$>))
+import Control.Applicative((<*>), (<$>), liftA2)
 import Control.Monad(filterM)
 import Control.Monad.State.Class(get, put)
 import Control.Monad.Reader(runReader, withReaderT)
@@ -31,10 +31,22 @@ enumerateTargets p c x = do
               f t = withReaderT (g t) x
               g t (e, s, q, d) = (e, s, q, d, t)
 
--- 自分だけ
-targetableSelf :: Targetable
-targetableSelf = ask >>= f
-    where f (_, _, p, c, (TargetCard q d)) = return (p == q && c == d)
+-- 対象をカードとして列挙
+enumerateAsCards :: BattleSetting -> Target -> [(Player, Int)]
+enumerateAsCards e (TargetCard p c) = [(p, c)]
+enumerateAsCards e (TargetTeam p) = map (\c -> (p, c)) [0..(length')]
+    where length' = length $ e ^. (playerAccessor p)
+enumerateAsCards e TargetAll = (enumerate FirstPlayer) ++ (enumerate SecondPlayer)
+    where enumerate p = enumerateAsCards e (TargetTeam p)
+
+-- 全て
+targetableAlmighty :: Targetable
+targetableAlmighty = return True
+
+-- カード位置同じ
+targetableSamePosition :: Targetable
+targetableSamePosition = ask >>= f
+    where f (_, _, _, c, (TargetCard _ d)) = return (c == d)
           f _ = return False
 
 -- 敵
@@ -49,3 +61,24 @@ targetableOwn :: Targetable
 targetableOwn = not <$> targetableOpponent
 
 -- 単体
+targetableOne :: Targetable
+targetableOne = ask >>= f
+    where f (_, _, _, _, (TargetCard _ _)) = return True
+          f _ = return False
+
+-- チーム
+targetableTeam :: Targetable
+targetableTeam = ask >>= f
+    where f (_, _, _, _, (TargetTeam _)) = return True
+          f _ = return False
+
+-- 全体
+targetableAll :: Targetable
+targetableAll = ask >>= f
+    where f (_, _, _, _, TargetAll) = return True
+          f _ = return False
+
+-- 自分
+targetableSelf :: Targetable
+targetableSelf = targetableSamePosition `comb` targetableOwn
+    where comb = liftA2 (&&)
