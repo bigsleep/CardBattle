@@ -1,6 +1,10 @@
+{-# LANGUAGE TypeOperators #-}
 module Battle.Target where
 
+import Control.Applicative((<*>), (<$>))
+import Control.Monad(filterM)
 import Control.Monad.State.Class(get, put)
+import Control.Monad.Reader(runReader, withReaderT)
 import Control.Monad.Reader.Class(ask)
 import Control.Lens hiding (Action)
 import Battle.Types
@@ -18,25 +22,30 @@ enumerateAllTargets e =
           s = map (\c -> TargetCard SecondPlayer c) [0..(length (e ^. secondCards) - 1)]
 
 -- ターゲット列挙
-enumerateTargets :: (Targetable a) => Player -> Int -> a -> BattleTurn [Target]
+enumerateTargets :: Player -> Int -> Targetable -> BattleTurn [Target]
 enumerateTargets p c x = do
     e <- ask
     s <- get
-    return $ filter (canTarget e s p c x) (enumerateAllTargets e)
-
--- Targetable合成
+    return $ (runReader (filtered e)) (e, s, p, c)
+        where filtered a = filterM f (enumerateAllTargets a)
+              f t = withReaderT (g t) x
+              g t (e, s, q, d) = (e, s, q, d, t)
 
 -- 自分だけ
-data TargetableSelf = TargetableSelf deriving (Show, Eq)
+targetableSelf :: Targetable
+targetableSelf = ask >>= f
+    where f (_, _, p, c, (TargetCard q d)) = return (p == q && c == d)
+          f _ = return False
 
-instance Targetable TargetableSelf where
-    canTarget _ _ p c _ (TargetCard q d) = p == q && c == d
-    canTarget _ _ _ _ _ _ = False
+-- 敵
+targetableOpponent :: Targetable
+targetableOpponent = ask >>= f
+    where f (_, _, p, _, (TargetCard q _)) = return (p /= q)
+          f (_, _, p, _, (TargetTeam q)) = return (p /= q)
+          f _ = return False
 
--- 敵一体
-data TargetableOpponentOne = TargetableOpponentOne deriving (Show, Eq)
+-- 味方
+targetableOwn :: Targetable
+targetableOwn = not <$> targetableOpponent
 
-instance Targetable TargetableOpponentOne where
-    canTarget _ _ p c _ (TargetCard q d) = p /= q
-    canTarget _ _ _ _ _ _ = False
-        
+-- 単体

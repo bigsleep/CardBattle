@@ -1,4 +1,4 @@
-{-# LANGUAGE ExistentialQuantification, TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell, ExistentialQuantification #-}
 
 module Battle.Types where
 
@@ -11,6 +11,7 @@ import Control.Lens hiding (Action)
 import Control.Monad(forM, when)
 import Control.Monad.State()
 import Control.Monad.State.Class(get, put)
+import Control.Monad.Reader(Reader())
 import Control.Monad.Reader.Class(ask)
 import Control.Monad.Trans.RWS(RWS)
 import Control.Monad.Free()
@@ -52,20 +53,14 @@ data Action =
 
 type BattleTurn = ErrorT BattleError (RWS BattleSetting [String] BattleState)
 
-data TargetCapacity = forall a. (Targetable a, Show a) => TargetCapacity a
+type Targetable = Reader (BattleSetting, BattleState, Player, Int, Target) (Bool)
 
-class Targetable a where
-    canTarget :: BattleSetting -> BattleState -> Player -> Int -> a -> Target -> Bool
-
-instance Show TargetCapacity where
-    show (TargetCapacity a) = "TargetCapacity " ++ show a
-
-data Skill = Skill Action TargetCapacity deriving (Show)
+data Skill = Skill Action Targetable
 
 data Card = Card {
     _properties :: PropertySet,
     _skills :: [Skill]
-    } deriving (Show)
+    }
 
 data CardState = CardState {
     _hp :: Int,
@@ -82,7 +77,7 @@ data BattleSetting = BattleSetting {
     _firstCards :: [Card],
     _secondCards :: [Card],
     _maxTurn :: Maybe Int
-    } deriving (Show)
+    }
 
 data BattleState = BattleState {
     _first :: [CardState],
