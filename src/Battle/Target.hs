@@ -26,10 +26,9 @@ enumerateTargets :: Player -> Int -> Targetable -> BattleTurn [Target]
 enumerateTargets p c x = do
     e <- ask
     s <- get
-    return $ (runReader (filtered e)) (e, s, p, c)
-        where filtered a = filterM f (enumerateAllTargets a)
-              f t = withReaderT (g t) x
-              g t (e, s, q, d) = (e, s, q, d, t)
+    return $ filtered e s
+        where filtered e s = filter (f e s) (enumerateAllTargets e)
+              f e s = (curry (runReader x)) (e, s, p, c)
 
 -- 対象をカードとして列挙
 enumerateAsCards :: BattleSetting -> Target -> [(Player, Int)]
@@ -43,17 +42,18 @@ enumerateAsCards e TargetAll = (enumerate FirstPlayer) ++ (enumerate SecondPlaye
 targetableAlmighty :: Targetable
 targetableAlmighty = return True
 
+
 -- カード位置同じ
 targetableSamePosition :: Targetable
 targetableSamePosition = ask >>= f
-    where f (_, _, _, c, (TargetCard _ d)) = return (c == d)
+    where f ((_, _, _, c), (TargetCard _ d)) = return (c == d)
           f _ = return False
 
 -- 敵
 targetableOpponent :: Targetable
 targetableOpponent = ask >>= f
-    where f (_, _, p, _, (TargetCard q _)) = return (p /= q)
-          f (_, _, p, _, (TargetTeam q)) = return (p /= q)
+    where f ((_, _, p, _), (TargetCard q _)) = return (p /= q)
+          f ((_, _, p, _), (TargetTeam q)) = return (p /= q)
           f _ = return False
 
 -- 味方
@@ -63,19 +63,19 @@ targetableOwn = not <$> targetableOpponent
 -- 単体
 targetableOne :: Targetable
 targetableOne = ask >>= f
-    where f (_, _, _, _, (TargetCard _ _)) = return True
+    where f ((_, _, _, _), (TargetCard _ _)) = return True
           f _ = return False
 
 -- チーム
 targetableTeam :: Targetable
 targetableTeam = ask >>= f
-    where f (_, _, _, _, (TargetTeam _)) = return True
+    where f ((_, _, _, _), (TargetTeam _)) = return True
           f _ = return False
 
 -- 全体
 targetableAll :: Targetable
 targetableAll = ask >>= f
-    where f (_, _, _, _, TargetAll) = return True
+    where f ((_, _, _, _), TargetAll) = return True
           f _ = return False
 
 -- 自分

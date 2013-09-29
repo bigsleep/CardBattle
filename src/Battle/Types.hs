@@ -53,7 +53,7 @@ data Action =
 
 type BattleTurn = ErrorT BattleError (RWS BattleSetting [String] BattleState)
 
-type Targetable = Reader (BattleSetting, BattleState, Player, Int, Target) (Bool)
+type Targetable = Reader ((BattleSetting, BattleState, Player, Int), Target) (Bool)
 
 data Skill = Skill Action Targetable
 
