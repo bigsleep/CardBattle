@@ -9,7 +9,6 @@ import Data.Functor ()
 import Data.Maybe ()
 import Data.List (sortBy)
 import qualified Data.Ord as Ord (compare)
-import qualified Data.Map as M (Map, fold, lookup, findWithDefault, adjust, map, mapWithKey)
 import qualified Data.Set as Set hiding (map, filter, foldl, insert)
 import Control.Lens hiding (Action)
 import Control.Monad (forM, when)
@@ -32,19 +31,21 @@ initializeBattleState :: BattleSetting -> BattleState
 initializeBattleState s = BattleState (initCards $ s ^. firstCards) (initCards $ s ^. secondCards) [] (s ^. maxTurn)
     where maxHp' x = x ^. properties . maxHp
           maxMp' x = x ^. properties . maxMp
-          initCards c = M.map (\x -> CardState (maxHp' x) (maxMp' x)) c
+          initCards = map (\x -> CardState (maxHp' x) (maxMp' x))
 
 isRunning :: BattleMachine Bool
 isRunning = do
     (_, s) <- get
     return $ firstAlive s && secondAlive s && turnRemain s
-    where firstAlive x = (M.fold cardAlive 0 (x ^. first)) > 0
-          secondAlive x = (M.fold cardAlive 0 (x ^. second)) > 0
-          cardAlive c x = if (c ^. hp) > 0 then x + 1 else x
+    where firstAlive x = (foldl cardAlive 0 (x ^. first)) > 0
+          secondAlive x = (foldl cardAlive 0 (x ^. second)) > 0
+          cardAlive x c = if (c ^. hp) > 0 then x + 1 else x
           turnRemain x = case (x ^. remainingTurn) of
-                            Nothing -> True
-                            (Just n) -> n > 0
+                              Nothing -> True
+                              (Just n) -> n > 0
 
+battleTurn = return ()
+{-
 battleTurn :: BattleMachine ()
 battleTurn = do
     xs <- inputFirstPlayerCommands
@@ -54,31 +55,29 @@ battleTurn = do
     let (_, s, w) = runRWS (execTurn commands) settings state
     outputBattleState s
         where f p zs = map (\c -> (BattleCommand p c)) zs
+-}
 
 battleCommandCompare :: BattleSetting -> [BattleEffect] -> BattleCommand -> BattleCommand -> Ordering
-battleCommandCompare st es l r =
+battleCommandCompare s es l r =
     if la /= ra
         then compare la ra
         else compare ls rs
-        where la = l ^. command . action
-              ra = r ^. command . action
+        where la = l ^. action
+              ra = r ^. action
               lp = l ^. player
               rp = r ^. player
-              lc = l ^. command . card
-              rc = r ^. command . card
-              ls = (currentProperties lp lc st es) ^. speed
-              rs = (currentProperties rp rc st es) ^. speed
+              lc = l ^. card
+              rc = r ^. card
+              ls = (currentProperties s es lp lc) ^. speed
+              rs = (currentProperties s es rp rc) ^. speed
 
-execTurn :: [BattleCommand] -> BattleTurn
+execTurn :: [BattleCommand] -> BattleTurn ()
 execTurn cs = forM cs execCommand >> consumeTurn >> cutoffHpMp
 
-execCommand :: BattleCommand -> BattleTurn
-execCommand (BattleCommand p (PlayerCommand c a)) = execCommand' p c a
+execCommand :: BattleCommand -> BattleTurn ()
+execCommand _ = return ()
 
-execCommand' :: PlayerTag -> CardPosition -> Action -> BattleTurn
-execCommand' p c a = return ()
-
-consumeTurn :: BattleTurn
+consumeTurn :: BattleTurn ()
 consumeTurn = do
     s <- get
     let es = s ^. effects
@@ -90,14 +89,15 @@ consumeTurn = do
                                     Nothing -> True
                                     (Just n) -> n > 0
 
-cutoffHpMp :: BattleTurn
+cutoffHpMp :: BattleTurn ()
 cutoffHpMp = do
     settings <- ask
     state <- get
     let effects' = state ^. effects
     put $ (state & first %~ (cutoff settings effects' FirstPlayer)) & second %~ (cutoff settings effects' SecondPlayer)
-        where cutoff s e p cs = M.mapWithKey (cutoffCard s e p) cs
-              cutoffCard s e p k c = CardState (min (c ^. hp) maxHp') (min (c ^. mp) maxMp')
-                where properties' = currentProperties p k s e
+        where cutoff s e p cs = map (cutoffCard s e cs p) [0..((length cs) - 1)]
+              cutoffCard s e cs p k = CardState (min (c ^. hp) maxHp') (min (c ^. mp) maxMp')
+                where c = cs !! k
+                      properties' = currentProperties s e p k
                       maxHp' = properties' ^. maxHp
                       maxMp' = properties' ^. maxMp

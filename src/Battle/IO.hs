@@ -10,8 +10,8 @@ import Battle.Types
 
 data BattleIO a =
     LoadSetting (Maybe Int -> a) |
-    LoadFirstPlayerCards (Map CardPosition Card -> a) |
-    LoadSecondPlayerCards (Map CardPosition Card -> a) |
+    LoadFirstPlayerCards ([Card] -> a) |
+    LoadSecondPlayerCards ([Card] -> a) |
     InputFirstPlayerCommands ([PlayerCommand] -> a) |
     InputSecondPlayerCommands ([PlayerCommand] -> a) |
     OutputBattleState BattleState a |
@@ -37,10 +37,10 @@ createOutput f x = lift . Free $ f x (Pure ())
 loadSetting :: BattleMachine (Maybe Int)
 loadSetting = createInput LoadSetting
 
-loadFirstPlayerCards :: BattleMachine (Map CardPosition Card)
+loadFirstPlayerCards :: BattleMachine [Card]
 loadFirstPlayerCards = createInput LoadFirstPlayerCards
 
-loadSecondPlayerCards :: BattleMachine (Map CardPosition Card)
+loadSecondPlayerCards :: BattleMachine [Card]
 loadSecondPlayerCards =createInput LoadSecondPlayerCards
 
 inputFirstPlayerCommands :: BattleMachine [PlayerCommand]

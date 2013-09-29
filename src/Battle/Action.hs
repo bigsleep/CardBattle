@@ -1,6 +1,7 @@
 module Battle.Action where
 
 import Battle.Types
+import Battle.Target
 
 import Prelude hiding (lookup)
 import qualified Data.List as L (find)
@@ -12,17 +13,13 @@ import Control.Monad.Error
 import Control.Monad.Error.Class
 import Control.Lens hiding (Action)
 
-currentProperties :: Player -> Int -> BattleTurn PropertySet
-currentProperties p c = do
-    e <- ask
-    s <- get
-    if length (cards e) > c
-        then return $ (applyEffect $ s ^. effects) (cards e !! c)
-        else throwError $ BattleError OutOfRange ("in currentProperties. arguments:" ++ show p ++ ", " ++ show c)
+currentProperties :: BattleSetting -> [BattleEffect] -> Player -> Int -> PropertySet
+currentProperties s es p c =
+    applyEffect es (cards s !! c)
     where cards a = (a ^. (playerAccessor p))
           applyEffect x (Card q _) = eff x q
           eff x = foldl (.) id (effectFunctions x)
-          effectFunctions x = map (^. effect) $ filter ((onTarget p c) . (^. target)) x
+          effectFunctions x = map (^. effect) $ filter ((onTarget p c) . (^. effectTarget)) x
 
 --execAction :: Player -> Int -> Action -> Target -> BattleTurn
 

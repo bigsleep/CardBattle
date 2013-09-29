@@ -68,7 +68,7 @@ data CardState = CardState {
 } deriving (Show)
 
 data BattleEffect = BattleEffect {
-    _target :: Target,
+    _effectTarget :: Target,
     _effect :: PropertySet -> PropertySet,
     _remaining :: Maybe Int
     }
@@ -94,7 +94,9 @@ data PlayerCommand = PlayerCommand {
 
 data BattleCommand = BattleCommand {
     _player :: Player,
-    _command :: PlayerCommand
+    _card :: Int,
+    _action :: Action,
+    _target :: Target
     } deriving (Show, Eq, Ord)
 
 -- Lenses
