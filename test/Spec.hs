@@ -1,6 +1,1 @@
-import Test.Hspec
-
-import TargetSpec
-
-main :: IO ()
-main = hspec TargetSpec.spec
+{-# OPTIONS_GHC -F -pgmF hspec-discover #-}

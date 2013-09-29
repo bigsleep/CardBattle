@@ -1,10 +1,10 @@
-module TargetSpec where
+module Battle.TargetSpec where
 
 import Test.Hspec
 import Control.Lens hiding (Action)
 import Battle.Types
 import Battle.Target
-import TestUtil
+import Battle.TestUtil
 
 spec :: Spec
 spec = do

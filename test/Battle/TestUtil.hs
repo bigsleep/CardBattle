@@ -1,4 +1,4 @@
-module TestUtil where
+module Battle.TestUtil where
 
 import Battle.Types
 import Battle.Battle
