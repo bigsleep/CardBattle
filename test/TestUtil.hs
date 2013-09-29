@@ -1,6 +1,7 @@
-module Battle.TestUtil where
+module TestUtil where
 
 import Battle.Types
+import Battle.Battle
 
 defaultCard :: Card
 defaultCard = Card {
@@ -11,11 +12,12 @@ defaultCard = Card {
         _defense = 20,
         _speed = 10,
         _magic = 10
-        }
+        },
+    _skills = []
     }
 
-defaultTeam :: Map CardPosition Card
-defaultTeam = fromList [(Card1, defaultCard), (Card2, defaultCard), (Card3, defaultCard)]
+defaultTeam :: [Card]
+defaultTeam = [defaultCard]
 
 defaultSetting = BattleSetting {
     _firstCards = defaultTeam,

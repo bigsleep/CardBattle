@@ -2,6 +2,7 @@ module Battle.Battle where
 
 import Battle.Types
 import Battle.IO
+import Battle.Target
 import Battle.Action
 
 import Prelude hiding (lookup)

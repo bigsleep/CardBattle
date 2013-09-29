@@ -2,7 +2,7 @@ module ActionSpec where
 
 import Test.Hspec
 import Battle.Action
-import Battle.TestUtil
+import TestUtil
 
 spec :: Spec
 spec = do
