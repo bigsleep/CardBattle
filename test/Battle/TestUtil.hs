@@ -1,5 +1,8 @@
 module Battle.TestUtil where
 
+import qualified Data.List as L (replicate)
+import Test.QuickCheck
+import Control.Applicative
 import Battle.Types
 import Battle.Battle
 
@@ -17,7 +20,7 @@ defaultCard = Card {
     }
 
 defaultTeam :: [Card]
-defaultTeam = [defaultCard]
+defaultTeam = L.replicate 4 defaultCard
 
 defaultSetting = BattleSetting {
     _firstCards = defaultTeam,
@@ -26,3 +29,11 @@ defaultSetting = BattleSetting {
     }
 
 defaultState = initializeBattleState defaultSetting
+
+-- Arbitrary
+instance Arbitrary Player where
+    arbitrary = f <$> choose (True, False)
+        where f True = FirstPlayer
+              f False = SecondPlayer
+    
+

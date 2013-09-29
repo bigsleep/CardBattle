@@ -22,13 +22,10 @@ enumerateAllTargets e =
           s = map (\c -> TargetCard SecondPlayer c) [0..(length (e ^. secondCards) - 1)]
 
 -- ターゲット列挙
-enumerateTargets :: Player -> Int -> Targetable -> BattleTurn [Target]
-enumerateTargets p c x = do
-    e <- ask
-    s <- get
-    return $ filtered e s
-        where filtered e s = filter (f e s) (enumerateAllTargets e)
-              f e s = (curry (runReader x)) (e, s, p, c)
+enumerateTargets :: BattleSetting -> BattleState -> Player -> Int -> Targetable -> [Target]
+enumerateTargets e s p c x = filtered
+        where filtered = filter f (enumerateAllTargets e)
+              f = (curry (runReader x)) (e, s, p, c)
 
 -- 対象をカードとして列挙
 enumerateAsCards :: BattleSetting -> Target -> [(Player, Int)]
