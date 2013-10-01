@@ -42,7 +42,7 @@ data PropertySet = PropertySet {
     _defense :: Int,
     _speed :: Int,
     _magic :: Int
-    } deriving (Show)
+    } deriving (Show, Eq)
 
 data Action =
     Defense |

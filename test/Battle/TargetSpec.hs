@@ -15,6 +15,8 @@ import Battle.TestUtil
 spec :: Spec
 spec = do
     describe "Target" $ do
+
+
     prop "ターゲット全列挙" $ do
         e <- (arbitrary :: Gen BattleSetting)
         let cardNum p = length (e ^. playerAccessor p)
