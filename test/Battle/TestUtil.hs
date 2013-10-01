@@ -1,7 +1,9 @@
+{-# LANGUAGE FlexibleInstances #-}
 module Battle.TestUtil where
 
 import qualified Data.List as L (replicate)
 import Test.QuickCheck
+import Control.Monad(replicateM)
 import Control.Applicative
 import Battle.Types
 import Battle.Battle
@@ -35,5 +37,25 @@ instance Arbitrary Player where
     arbitrary = f <$> choose (True, False)
         where f True = FirstPlayer
               f False = SecondPlayer
-    
 
+instance Arbitrary Card where
+    arbitrary = do
+        hp' <- choose (1, 100)
+        mp' <- choose (1, 50)
+        attack' <- choose (1, 20)
+        defense' <- choose (1, 20)
+        speed' <- choose (1, 20)
+        magic' <- choose (1, 20)
+        return $ Card {
+            _properties = PropertySet hp' mp' attack' defense' speed' magic',
+            _skills = []
+            }
+
+instance Arbitrary BattleSetting where
+    arbitrary = do
+        n <- choose (1, 5)
+        m <- choose (1, 5)
+        f <- replicateM n arbitrary
+        s <- replicateM m arbitrary
+        t <- choose (1, 10)
+        return $ BattleSetting f s (Just t)
