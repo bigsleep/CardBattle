@@ -1,4 +1,33 @@
 ----------------------------------------------
+20131002 テスト
+
+hspecとQuickCheckのテストをなんとなく覚えた
+
+propはTest.Hspec.QuickCheckに含まれる
+ランダムに複数回行うテスト
+prop :: Testable prop => String -> prop -> Spec
+引数二つテストの説明文とテスト内容
+Gen aもTestable
+引数がArbitraryのインスタンスであれば関数もTestable
+結果の表示のために引数がShowのインスタンスである必要がある
+Arbitraryはランダムに値を生成するための定義
+結果はBoolとかResultとかPropとかTestable?
+propだとテスト内容表示あたりも適当に書く必要ある。
+
+hspecのテストはSpecモナドをつなげるような感じで書く
+
+hspec-discoverを使うと、ソースのディレクトリ構造と対応するテストファイルを実行する。
+ファイルHoge.hsの場合テストはHogeSpec.hs
+module名Hogeの場合はHogeSpec
+ディレクトリ深くなっても同じ
+
+Spec.hsというファイルに
+{-# OPTIONS_GHC -F -pgmF hspec-discover #-}
+と書く
+
+書くファイルにspec :: Specを定義する。
+
+----------------------------------------------
 20130925 Actionの型をどうするか。
 
 カードごとの行動可能なアクションは
