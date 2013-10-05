@@ -77,3 +77,9 @@ instance Arbitrary BattleEffect where
         t <- arbitrary
         r <- choose (1, 10)
         return $ BattleEffect t eff (Just r)
+
+
+--
+chooseTargetCard :: BattleSetting -> Player -> Gen Int
+chooseTargetCard e p = choose (0, cardNum - 1)
+    where cardNum = length $ e ^. (playerAccessor p)

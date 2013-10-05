@@ -56,7 +56,6 @@ battleTurn = do
     let (_, s, w) = runRWS (execTurn commands) settings state
     outputBattleState s
         where f p zs = map (\c -> (BattleCommand p c)) zs
--}
 
 battleCommandCompare :: BattleSetting -> [BattleEffect] -> BattleCommand -> BattleCommand -> Ordering
 battleCommandCompare s es l r =
@@ -102,3 +101,4 @@ cutoffHpMp = do
                       properties' = currentProperties s e p k
                       maxHp' = properties' ^. maxHp
                       maxMp' = properties' ^. maxMp
+-}

@@ -13,18 +13,26 @@ import Control.Monad.Error
 import Control.Monad.Error.Class
 import Control.Lens hiding (Action)
 
-currentProperties :: BattleSetting -> [BattleEffect] -> Player -> Int -> PropertySet
-currentProperties s es p c =
-    applyEffect es (cards s !! c)
-    where cards a = (a ^. (playerAccessor p))
-          applyEffect x (Card q _) = eff x q
-          eff x = foldl (.) id (effectFunctions x)
+currentProperties :: Player -> Int -> BattleTurn PropertySet
+currentProperties p c = do
+    e <- ask
+    s <- get
+    case card' e of
+         Nothing -> throwError "in currentProperties. list index out of range."
+         Just c  -> return $ applyEffect s c
+    where card' x = cards x ^? ix c
+          cards x = (x ^. (playerAccessor p))
+          applyEffect s (Card q _) = eff s q
+          eff s = foldl (.) id (effectFunctions (s ^. effects))
           effectFunctions x = map (^. effect) $ filter ((onTarget p c) . (^. effectTarget)) x
 
---execAction :: Player -> Int -> Action -> Target -> BattleTurn
-
 {-
-execAction p c (Attack (TargetCard tp tc)) = do
+setHp :: Player -> Int -> BattleTurn ()
+setHp p c =
+
+execAction :: Player -> Int -> Action -> Target -> BattleTurn ()
+
+execAction p c Attack (TargetCard tp tc) = do
     settings <- ask
     state <- get
     let effects' = state ^. effects

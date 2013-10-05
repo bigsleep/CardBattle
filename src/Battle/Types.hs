@@ -24,17 +24,6 @@ data Target =
     TargetTeam Player |
     TargetCard Player Int deriving (Show, Eq, Ord)
 
-data BattleErrorType =
-    OutOfRange |
-    UnknownError
-    deriving (Show, Eq, Enum)
-
-data BattleError = BattleError BattleErrorType String deriving (Show, Eq)
-
-instance Error BattleError where
-    noMsg = BattleError UnknownError ""
-    strMsg s = BattleError UnknownError s
-
 data PropertySet = PropertySet {
     _maxHp :: Int,
     _maxMp :: Int,
@@ -51,7 +40,7 @@ data Action =
     Multi [Action]
     deriving (Show, Eq, Ord)
 
-type BattleTurn = ErrorT BattleError (RWS BattleSetting [String] BattleState)
+type BattleTurn = ErrorT String (RWS BattleSetting [String] BattleState)
 
 type Targetable = Reader ((BattleSetting, BattleState, Player, Int), Target) (Bool)
 
@@ -117,3 +106,7 @@ playerAccessor SecondPlayer = secondCards
 playerStateAccessor :: Player -> Lens' BattleState [CardState]
 playerStateAccessor FirstPlayer = first
 playerStateAccessor SecondPlayer = second
+
+opponentPlayer :: Player -> Player
+opponentPlayer FirstPlayer = SecondPlayer
+opponentPlayer SecondPlayer = FirstPlayer
