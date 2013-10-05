@@ -55,8 +55,8 @@ instance Arbitrary Card where
 
 instance Arbitrary BattleSetting where
     arbitrary = do
-        n <- choose (1, 5)
-        m <- choose (1, 5)
+        n <- choose (1, 3)
+        m <- choose (1, 3)
         f <- replicateM n arbitrary
         s <- replicateM m arbitrary
         t <- choose (1, 10)

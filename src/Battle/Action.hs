@@ -26,24 +26,24 @@ currentProperties p c = do
           eff s = foldl (.) id (effectFunctions (s ^. effects))
           effectFunctions x = map (^. effect) $ filter ((onTarget p c) . (^. effectTarget)) x
 
-{-
-setHp :: Player -> Int -> BattleTurn ()
-setHp p c =
 
 execAction :: Player -> Int -> Action -> Target -> BattleTurn ()
 
 execAction p c Attack (TargetCard tp tc) = do
-    settings <- ask
-    state <- get
-    let effects' = state ^. effects
-    let attack' = (currentProperties p c settings effects') ^. attack
-    let defense' = (currentProperties tp tc settings effects') ^. defense
-    let hp' = ((state ^. playerStateAccessor tp) M.! tc) ^. hp
-    let damage = min (attack' - defense') hp'
-    put $ state & (playerStateAccessor tp) %~ (updateCard (decreaseHp damage) tc)
-        where updateCard f k m = M.adjust f k m
-              decreaseHp d x = x {_hp = (x ^. hp - d)}
+    setting' <- ask
+    state' <- get
+    let effects' = state' ^. effects
+    prop <- currentProperties p c
+    tprop <- currentProperties tp tc
+    let attack' = prop ^. attack
+    let defense' = tprop ^. defense
+    hp' <- getHp (state' ^? (playerStateAccessor tp . ix tc))
+    let damage = min (max 1 (attack' - defense')) hp'
+    put $ state' & (playerStateAccessor tp . ix tc . hp) .~ (hp' - damage)
+        where getHp (Just d) = return (d ^. hp)
+              getHp Nothing = throwError "in execAction (Attack). list index out of range."
 
+{-
 execAction p c Defense = do
     settings <- ask
     state <- get

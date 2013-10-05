@@ -54,7 +54,7 @@ data Card = Card {
 data CardState = CardState {
     _hp :: Int,
     _mp :: Int
-} deriving (Show)
+} deriving (Show, Eq)
 
 data BattleEffect = BattleEffect {
     _effectTarget :: Target,
