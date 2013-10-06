@@ -39,19 +39,8 @@ currentProperties p c = do
 execAction :: Player -> Int -> Action -> Target -> BattleTurn ()
 
 -- Attack
-execAction p c Attack (TargetCard tp tc) = do
-    setting' <- ask
-    state' <- get
-    let effects' = state' ^. effects
-    prop <- currentProperties p c
-    tprop <- currentProperties tp tc
-    let attack' = prop ^. attack
-    attackOne attack' (tp, tc)
-
 execAction p c Attack t = do
     setting' <- ask
-    state' <- get
-    let effects' = state' ^. effects
     prop <- currentProperties p c
     let attack' = prop ^. attack
     let ts = enumerateAsCards setting' t
@@ -59,30 +48,24 @@ execAction p c Attack t = do
     
 -- Defense
 execAction p c Defense t = do
-    setting' <- ask
     state' <- get
     prop <- defaultProperties p c
     let defense' = prop ^. defense
     let effect' = BattleEffect t (boostDefense defense') (Just 1)
     put $ state' & effects %~ (effect' :)
-        where boostDefense d p = p & defense %~ (+d)
+    where boostDefense d p = p & defense %~ (+d)
 
-{-
-execAction p c (Heal a b (TargetCard tp tc)) = do
-    settings <- ask
-    state <- get
-    let effects' = state ^. effects
-    let maxHp' = (currentProperties tp tc settings effects') ^. maxHp
-    let hp' = ((state ^. playerStateAccessor tp) M.! tc) ^. hp
-    let heal = max 0 (min b (maxHp' - hp'))
-    let state' = state & (playerStateAccessor tp) %~ (updateCard (increaseHp heal) tc)
-    put $ state' & (playerStateAccessor p) %~ (updateCard (consumeMp a) c)
-        where updateCard f k m = M.adjust f k m
-              increaseHp d x = x {_hp = (x ^. hp + d)}
-              consumeMp q x = x {_mp = (x ^. mp) - q}
--}
+-- Heal
+execAction p c (Heal a b) t = do
+    setting' <- ask
+    let ts = enumerateAsCards setting' t
+    forM_ ts (healOne a)
+    state' <- get
+    put $ state' & (playerStateAccessor p . ix c . mp) %~ consumeMp b
+    where consumeMp x a = max 0 (a - x)
 
 
+-- 単体攻撃
 attackOne :: Int -> (Player, Int) -> BattleTurn ()
 attackOne attack' (tp, tc) = do
     state' <- get 
@@ -97,3 +80,18 @@ attackOne attack' (tp, tc) = do
     where getHp (Just d) = return (d ^. hp)
           getHp Nothing = throwError "in attackOne. list index out of range."
 
+
+-- 単体回復
+healOne :: Int -> (Player, Int) -> BattleTurn ()
+healOne h (tp, tc) = do
+    state' <- get 
+    hp' <- getHp (state' ^? (playerStateAccessor tp . ix tc))
+    if hp' <= 0
+        then return ()
+        else do
+            prop <- currentProperties tp tc
+            let maxHp' = prop ^. maxHp
+            let incHp = max 0 (min h (maxHp' - hp'))
+            put $ state' & (playerStateAccessor tp . ix tc . hp) .~ (hp' + incHp)
+    where getHp (Just d) = return (d ^. hp)
+          getHp Nothing = throwError "in healOne. list index out of range."
