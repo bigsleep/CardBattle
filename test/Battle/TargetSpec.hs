@@ -11,6 +11,7 @@ import Battle.Types
 import Battle.Target
 import Battle.Battle
 import Battle.TestUtil
+import Text.Printf
 
 spec :: Spec
 spec = do
@@ -63,8 +64,9 @@ spec = do
         let targetable = targetableSelf `or'` (targetableTeam `and'` targetableOpponent)
         let test = enumerateTargets setting' state' player' card' targetable
         let ans = [TargetCard player' card', TargetTeam $ if player' == FirstPlayer then SecondPlayer else FirstPlayer]
-        let m = "player: " ++ show player' ++ " card: " ++ show card' ++ " cardNum: " ++ show cardNum ++ " expected: " ++ show ans ++ " result: " ++ show test
+        let message = printf "player: %s\ncard: %d\ncardNum: %d\nexpected: %s\nresult: %s\n"
+                      (show player') card' cardNum (show ans) (show test)
         if test == ans
             then return Prop.succeeded
-            else return Prop.failed {Prop.reason = m}
+            else return Prop.failed {Prop.reason = message}
 
