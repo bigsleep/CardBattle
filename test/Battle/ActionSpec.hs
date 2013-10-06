@@ -99,12 +99,31 @@ spec = do
         let before = state' ^? playerStateAccessor t . ix tc
         let message s = printf
                         "attack: %d\ndefense: %d\nbefore: %s\nexpected: %s\nresult: %s\n"
-                        attack' defense' (show before) (show (expected ^? ix tc)) s :: String
+                        attack' defense' (show before) (show (expected ^? ix tc)) s
         case test of
              Left s -> return Prop.failed {Prop.reason = s}
              Right result -> if (result ^. playerStateAccessor t) == expected
                 then return Prop.succeeded
                 else return Prop.failed {Prop.reason = message $ show (result ^? playerStateAccessor t . ix tc)}
+
+
+    prop "execAction Defense" $ do
+        setting' <- arbitrary
+        p <- arbitrary
+        c <- chooseTargetCard setting' p
+        let target' = TargetCard p c
+        let state' = initializeBattleState setting'
+        let properties' = ((setting' ^. (playerAccessor p)) !! c ^. properties)
+        let defense' = properties' ^. defense
+        let (Right afterState) = runExecActionTest setting' state' p c Defense target'
+        let (Right afterProp) = runCurrentPropertiesTest setting' afterState p c
+        let expected = properties' & defense %~ (+ defense')
+        let message = printf
+                        "defense: %d\nbefore: %s\nexpected: %s\nresult: %s\n"
+                        defense' (show properties') (show expected) (show afterProp)
+        if afterProp == expected
+            then return Prop.succeeded
+            else return Prop.failed {Prop.reason = message}
 
 
 runCurrentPropertiesTest :: BattleSetting -> BattleState -> Player -> Int -> Either String PropertySet
