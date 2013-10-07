@@ -38,12 +38,13 @@ spec = do
         setting' <- arbitrary
         p <- arbitrary
         c <- chooseTargetCard setting' p
-        let eff = \a -> a & attack %~ (*2)
-        let doubleAttack = BattleEffect TargetAll eff (Just 1)
+        let factor = unitPropertyFactor {_attackFactor = 2}
+        let doubleAttack = BattleEffect TargetAll factor (Just 1)
         let effects' = [doubleAttack, doubleAttack]
         let state' = (initializeBattleState setting') & effects .~ effects'
         let test = runCurrentPropertiesTest setting' state' p c
-        let expected = eff . eff $ ((setting' ^. (playerAccessor p)) !! c ^. properties)
+        let before = (setting' ^. (playerAccessor p)) !! c ^. properties
+        let expected = before `applyPropertyFactor` (factor `multPropertyFactor` factor)
         case test of
              Left s -> return False
              Right result -> return $ result == expected
@@ -56,9 +57,10 @@ spec = do
         p <- arbitrary
         c <- chooseTargetCard setting' p
         let test = runCurrentPropertiesTest setting' state' p c
-        let eff = filter ((onTarget p c) . (^. effectTarget)) effects'
-        let f = foldl (.) id (map (^. effect) eff)
-        let expected = f ((setting' ^. (playerAccessor p)) !! c ^. properties)
+        let es = map (^. factor) $ filter ((onTarget p c) . (^. effectTarget)) effects'
+        let f = foldl multPropertyFactor unitPropertyFactor es
+        let before = (setting' ^. (playerAccessor p)) !! c ^. properties
+        let expected = before `applyPropertyFactor` f
         case test of
              Left s -> return False
              Right result -> return $ result == expected
@@ -125,12 +127,10 @@ spec = do
             then return Prop.succeeded
             else return Prop.failed {Prop.reason = message}
 
-
 runCurrentPropertiesTest :: BattleSetting -> BattleState -> Player -> Int -> Either String PropertySet
 runCurrentPropertiesTest e s p c = result
     where m = currentProperties p c
           (result, _, _) = runRWS (runErrorT m) e s
-
 
 runExecActionTest ::BattleSetting -> BattleState -> Player -> Int -> Action -> Target -> Either String BattleState
 runExecActionTest e s p c a t = result

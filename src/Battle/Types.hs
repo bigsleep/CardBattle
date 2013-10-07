@@ -33,6 +33,23 @@ data PropertySet = PropertySet {
     _magic :: Int
     } deriving (Show, Eq)
 
+data PropertyFactor = PropertyFactor {
+    _maxHpFactor :: Double,
+    _maxMpFactor :: Double,
+    _attackFactor :: Double,
+    _defenseFactor :: Double,
+    _speedFactor :: Double,
+    _magicFactor :: Double
+    } deriving (Show, Eq)
+    
+data PropertyFactorTag =
+    MaxHpFactor |
+    MaxMpFactor |
+    AttackFactor |
+    DefenseFactor |
+    SpeedFactor |
+    MagicFactor deriving (Show, Eq, Enum)
+
 data Action =
     Defense |
     Attack |
@@ -58,7 +75,7 @@ data CardState = CardState {
 
 data BattleEffect = BattleEffect {
     _effectTarget :: Target,
-    _effect :: PropertySet -> PropertySet,
+    _factor :: PropertyFactor,
     _remaining :: Maybe Int
     }
 
@@ -90,6 +107,7 @@ data BattleCommand = BattleCommand {
 
 -- Lenses
 $(makeLenses ''PropertySet)
+$(makeLenses ''PropertyFactor)
 $(makeLenses ''Action)
 $(makeLenses ''Card)
 $(makeLenses ''CardState)
@@ -106,6 +124,14 @@ playerAccessor SecondPlayer = secondCards
 playerStateAccessor :: Player -> Lens' BattleState [CardState]
 playerStateAccessor FirstPlayer = first
 playerStateAccessor SecondPlayer = second
+
+propertyFactorAccessor :: PropertyFactorTag -> Lens' PropertyFactor Double
+propertyFactorAccessor MaxHpFactor = maxHpFactor
+propertyFactorAccessor MaxMpFactor = maxMpFactor
+propertyFactorAccessor AttackFactor = attackFactor
+propertyFactorAccessor DefenseFactor = defenseFactor
+propertyFactorAccessor SpeedFactor = speedFactor
+propertyFactorAccessor MagicFactor = magicFactor
 
 opponentPlayer :: Player -> Player
 opponentPlayer FirstPlayer = SecondPlayer

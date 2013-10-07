@@ -40,7 +40,7 @@ instance Arbitrary Player where
         where f True = FirstPlayer
               f False = SecondPlayer
 
-instance Arbitrary Card where
+instance Arbitrary PropertySet where
     arbitrary = do
         hp' <- choose (1, 100)
         mp' <- choose (1, 50)
@@ -48,8 +48,24 @@ instance Arbitrary Card where
         defense' <- choose (1, 20)
         speed' <- choose (1, 20)
         magic' <- choose (1, 20)
+        return $ PropertySet hp' mp' attack' defense' speed' magic'
+
+instance Arbitrary PropertyFactor where
+    arbitrary = do
+        let gen = choose (0.1, 10)
+        hp' <- gen
+        mp' <- gen
+        attack' <- gen
+        defense' <- gen
+        speed' <- gen
+        magic' <- gen
+        return $ PropertyFactor hp' mp' attack' defense' speed' magic'
+
+instance Arbitrary Card where
+    arbitrary = do
+        p <- arbitrary
         return $ Card {
-            _properties = PropertySet hp' mp' attack' defense' speed' magic',
+            _properties = p,
             _skills = []
             }
 
@@ -70,14 +86,10 @@ instance Arbitrary Target where
 
 instance Arbitrary BattleEffect where
     arbitrary = do
-        let paccessor = [maxHp, maxMp, attack, defense, speed, magic]
-        propertyAccessor <- elements paccessor
-        factor <- choose (2, 10)
-        let eff = \p -> p & propertyAccessor %~ (*factor)
         t <- arbitrary
         r <- choose (1, 10)
-        return $ BattleEffect t eff (Just r)
-
+        factor <- arbitrary
+        return $ BattleEffect t factor (Just r)
 
 --
 chooseTargetCard :: BattleSetting -> Player -> Gen Int
