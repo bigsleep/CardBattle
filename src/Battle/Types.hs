@@ -17,12 +17,12 @@ import Control.Monad.Trans.RWS(RWS)
 import Control.Monad.Free()
 import Control.Monad.Error(ErrorT, Error, noMsg, strMsg)
 
-data Player = FirstPlayer | SecondPlayer deriving (Show, Eq, Ord, Enum)
+data Player = FirstPlayer | SecondPlayer deriving (Show, Eq, Enum)
 
 data Target =
     TargetAll |
     TargetTeam Player |
-    TargetCard Player Int deriving (Show, Eq, Ord)
+    TargetCard Player Int deriving (Show, Eq)
 
 data PropertySet = PropertySet {
     _maxHp :: Int,
@@ -108,14 +108,14 @@ data PlayerCommand = PlayerCommand {
     _cardIndex :: Int,
     _skillIndex :: Int,
     _targetIndex :: Int
-    } deriving (Show, Eq, Ord)
+    } deriving (Show, Eq)
 
 data BattleCommand = BattleCommand {
     _player :: Player,
     _card :: Int,
     _action :: Action,
     _target :: Target
-    } deriving (Show, Eq, Ord)
+    } deriving (Show, Eq)
 
 -- Lenses
 $(makeLenses ''PropertySet)

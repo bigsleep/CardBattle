@@ -1,6 +1,8 @@
 module Battle.IO where
 
 import Data.Map
+import Control.Monad.Error
+import Control.Monad.Error.Class
 import Control.Monad.State(StateT)
 import Control.Monad.State.Class(get, put)
 import Control.Monad.Reader.Class(ask)
@@ -26,13 +28,13 @@ instance Functor BattleIO where
     fmap f (OutputBattleState s c) = OutputBattleState s (f c)
     fmap f (OutputMessage s c) = OutputMessage s (f c)
 
-type BattleMachine = StateT (BattleSetting, BattleState) (Free BattleIO)
+type BattleMachine = ErrorT String (StateT (BattleSetting, BattleState) (Free BattleIO))
 
 createInput :: ((a -> Free BattleIO a) -> BattleIO (Free BattleIO a)) -> BattleMachine a
-createInput f = lift . Free . f $ \x -> Pure x
+createInput f = lift . lift . Free . f $ \x -> Pure x
 
 createOutput :: (a -> Free BattleIO () -> BattleIO (Free BattleIO ())) -> a -> BattleMachine ()
-createOutput f x = lift . Free $ f x (Pure ())
+createOutput f x = lift . lift . Free $ f x (Pure ())
 
 loadSetting :: BattleMachine (Maybe Int)
 loadSetting = createInput LoadSetting

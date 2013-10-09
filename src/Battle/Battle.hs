@@ -11,8 +11,11 @@ import Data.Maybe ()
 import GHC.Exts(sortWith)
 import qualified Data.Ord as Ord (compare)
 import qualified Data.Set as Set hiding (map, filter, foldl, insert)
+import Control.Applicative(liftA2)
 import Control.Lens hiding (Action)
 import Control.Monad (forM, when)
+import Control.Monad.Error
+import Control.Monad.Error.Class
 import Control.Monad.State ()
 import Control.Monad.State.Class (get, put)
 import Control.Monad.Reader.Class (ask)
@@ -45,6 +48,14 @@ isRunning = do
                               Nothing -> True
                               (Just n) -> n > 0
 
+toBattleMachine :: BattleTurn a -> BattleMachine a
+toBattleMachine x = do
+    (setting', state') <- get
+    let (r, s, _) = runRWS (runErrorT x) setting' state'
+    case r of
+        Left m -> throwError m
+        Right m -> put (setting', s) >> return m
+
 sortBattleCommands :: [BattleCommand] -> BattleTurn [BattleCommand]
 sortBattleCommands cs = do
     e <- ask
@@ -54,20 +65,34 @@ sortBattleCommands cs = do
     return $ map snd (sortWith fst zipped)
     where currentSpeed (BattleCommand p c a _) = currentProperties p c >>= \p -> return (a, p ^. speed)
 
-battleTurn = return ()
-{-
+toBattleCommand :: Player -> PlayerCommand -> BattleMachine BattleCommand
+toBattleCommand p (PlayerCommand c s t)  = do
+    (setting', state') <- get
+    card' <- fromJust $ setting' ^? (playerAccessor p) . ix c
+    Skill a tc <- fromJust $ card' ^? skills . ix s
+    let targets = enumerateTargets setting' state' p c (targetable tc)
+    target' <- fromJust $ targets ^? ix t
+    return $ BattleCommand p c a target'
+    where fromJust (Just a) = return a
+          fromJust Nothing = throwError "in toBattleCommand. fromJust: Nothing"
+
 battleTurn :: BattleMachine ()
 battleTurn = do
     xs <- inputFirstPlayerCommands
     ys <- inputSecondPlayerCommands
     (settings, state) <- get
-    let commands = sortBy (battleCommandCompare settings (state ^. effects)) ((f FirstPlayer xs) ++ (f SecondPlayer ys))
-    let (_, s, w) = runRWS (execTurn commands) settings state
-    outputBattleState s
-        where f p zs = map (\c -> (BattleCommand p c)) zs
+    xs' <- mapM (toBattleCommand FirstPlayer) xs
+    ys' <- mapM (toBattleCommand SecondPlayer) ys
+    toBattleMachine $ execTurn (xs' ++ ys')
 
+execTurn cs = return ()
+{-
 execTurn :: [BattleCommand] -> BattleTurn ()
-execTurn cs = forM cs execCommand >> consumeTurn >> cutoffHpMp
+execTurn cs = do
+    sorted <- sortBattleCommands cs
+    forM sorted execCommand
+    consumeTurn
+    cutoffHpMp
 
 execCommand :: BattleCommand -> BattleTurn ()
 execCommand _ = return ()
