@@ -8,7 +8,7 @@ import Battle.Action
 import Prelude hiding (lookup)
 import Data.Functor ()
 import Data.Maybe ()
-import Data.List (sortBy)
+import GHC.Exts(sortWith)
 import qualified Data.Ord as Ord (compare)
 import qualified Data.Set as Set hiding (map, filter, foldl, insert)
 import Control.Lens hiding (Action)
@@ -45,6 +45,15 @@ isRunning = do
                               Nothing -> True
                               (Just n) -> n > 0
 
+sortBattleCommands :: [BattleCommand] -> BattleTurn [BattleCommand]
+sortBattleCommands cs = do
+    e <- ask
+    s <- get
+    speedFactors <- forM cs currentSpeed
+    let zipped = zip speedFactors cs
+    return $ map snd (sortWith fst zipped)
+    where currentSpeed (BattleCommand p c a _) = currentProperties p c >>= \p -> return (a, p ^. speed)
+
 battleTurn = return ()
 {-
 battleTurn :: BattleMachine ()
@@ -56,20 +65,6 @@ battleTurn = do
     let (_, s, w) = runRWS (execTurn commands) settings state
     outputBattleState s
         where f p zs = map (\c -> (BattleCommand p c)) zs
-
-battleCommandCompare :: BattleSetting -> [BattleEffect] -> BattleCommand -> BattleCommand -> Ordering
-battleCommandCompare s es l r =
-    if la /= ra
-        then compare la ra
-        else compare ls rs
-        where la = l ^. action
-              ra = r ^. action
-              lp = l ^. player
-              rp = r ^. player
-              lc = l ^. card
-              rc = r ^. card
-              ls = (currentProperties s es lp lc) ^. speed
-              rs = (currentProperties s es rp rc) ^. speed
 
 execTurn :: [BattleCommand] -> BattleTurn ()
 execTurn cs = forM cs execCommand >> consumeTurn >> cutoffHpMp
