@@ -17,45 +17,37 @@ spec :: Spec
 spec = do
     describe "Target" $ do
 
-
-    prop "ターゲット全列挙" $ do
-        e <- (arbitrary :: Gen BattleSetting)
+    prop "ターゲット全列挙" $ \e ->
         let cardNum p = length (e ^. playerAccessor p)
-        let tcards p = map (\c -> TargetCard p c) [0..(cardNum p - 1)]
-        let first' = tcards FirstPlayer
-        let second' = tcards SecondPlayer
-        let rest = [TargetTeam FirstPlayer, TargetTeam SecondPlayer, TargetAll]
-        let ans = first' ++ second' ++ rest
-        return $ enumerateAllTargets e == ans
+            tcards p = map (\c -> TargetCard p c) [0..(cardNum p - 1)]
+            first' = tcards FirstPlayer
+            second' = tcards SecondPlayer
+            rest = [TargetTeam FirstPlayer, TargetTeam SecondPlayer, TargetAll]
+            ans = first' ++ second' ++ rest
+        in  enumerateAllTargets e == ans
 
 
-    prop "ターゲット列挙、すべて可能の場合" $ do
+    prop "ターゲット列挙、すべて可能の場合" $ \e->
         let p = FirstPlayer
-        let c = 0
-        e <- (arbitrary :: Gen BattleSetting)
+            c = 0
+            s = initializeBattleState e
+            test = enumerateTargets e s p c targetableAlmighty
+            ans = enumerateAllTargets e
+        in  test == ans
+
+
+    prop "ターゲット列挙、ターゲット可能自分のみの場合" $ \e p c ->
         let s = initializeBattleState e
-        let test = enumerateTargets e s p c targetableAlmighty
-        let ans = enumerateAllTargets e
-        return $ test == ans
+            l = length $ e ^. (playerAccessor p)
+            test = enumerateTargets e s p c targetableSelf
+            ans = if 0 <= c && c < l then [TargetCard p c] else []
+            m = "case TeamSize: " ++ show l ++ " Player: " ++ show p ++ " CardIndex: " ++ show c
+        in if test == ans
+              then Prop.succeeded
+              else Prop.failed {Prop.reason = m}
 
 
-    prop "ターゲット列挙、ターゲット可能自分のみの場合" $ do
-        p <- arbitrary
-        c <- arbitrary
-        e <- arbitrary
-        let s = initializeBattleState e
-        let l = length $ e ^. (playerAccessor p)
-        let test = enumerateTargets e s p c targetableSelf
-        let ans = if 0 <= c && c < l then [TargetCard p c] else []
-        let m = "case TeamSize: " ++ show l ++ " Player: " ++ show p ++ " CardIndex: " ++ show c
-        if test == ans
-            then return Prop.succeeded
-            else return Prop.failed {Prop.reason = m}
-
-
-    prop "ターゲット列挙、敵チームと自分" $ do
-        player' <- arbitrary
-        setting' <- arbitrary
+    prop "ターゲット列挙、敵チームと自分" $ \player' setting' -> do
         let state' = initializeBattleState setting'
         let cardNum = length $ setting' ^. (playerAccessor player')
         card' <- choose (0, cardNum - 1)

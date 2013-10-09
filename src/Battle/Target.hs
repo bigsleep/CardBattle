@@ -35,6 +35,20 @@ enumerateAsCards e (TargetTeam p) = map (\c -> (p, c)) [0..(length')]
 enumerateAsCards e TargetAll = (enumerate FirstPlayer) ++ (enumerate SecondPlayer)
     where enumerate p = enumerateAsCards e (TargetTeam p)
 
+-- targetable
+targetable :: TargetCapacity -> Targetable
+targetable TargetCapacityOne = targetableOne
+targetable TargetCapacityTeam = targetableTeam
+targetable TargetCapacityAll = targetableAll
+targetable TargetCapacityAlmighty = targetableAlmighty
+targetable TargetCapacityOwn = targetableOwn
+targetable TargetCapacityOpponent = targetableOpponent
+targetable TargetCapacitySelf = targetableSelf
+targetable (TargetCapacityMixAnd a b) = targetable a `comb` targetable b
+    where comb = liftA2 (&&)
+targetable (TargetCapacityMixOr a b) = targetable a `comb` targetable b
+    where comb = liftA2 (||)
+
 -- 全て
 targetableAlmighty :: Targetable
 targetableAlmighty = return True

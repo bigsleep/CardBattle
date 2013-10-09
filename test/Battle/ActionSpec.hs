@@ -22,11 +22,9 @@ spec :: Spec
 spec = do
     describe "Action" $ do
 
-    prop "currentProperties エフェクトなし" $ do
-        e <- arbitrary
-        let s = initializeBattleState e
-        p <- arbitrary
+    prop "currentProperties エフェクトなし" $ \e p -> do
         c <- chooseTargetCard e p
+        let s = initializeBattleState e
         let test = runCurrentPropertiesTest e s p c
         let expected = ((e ^. (playerAccessor p)) !! c ^. properties)
         case test of
@@ -34,9 +32,7 @@ spec = do
              Right result -> return $ result == expected
 
 
-    prop "currentProperties 攻撃力2倍2倍" $ do
-        setting' <- arbitrary
-        p <- arbitrary
+    prop "currentProperties 攻撃力2倍2倍" $ \setting' p -> do
         c <- chooseTargetCard setting' p
         let factor = unitPropertyFactor {_attackFactor = 2}
         let doubleAttack = BattleEffect TargetAll factor (Just 1)
@@ -50,12 +46,9 @@ spec = do
              Right result -> return $ result == expected
 
 
-    prop "currentProperties エフェクトランダム" $ do
-        setting' <- arbitrary
-        effects' <- arbitrary
-        let state' = (initializeBattleState setting') & effects .~ effects'
-        p <- arbitrary
+    prop "currentProperties エフェクトランダム" $ \setting' effects' p -> do
         c <- chooseTargetCard setting' p
+        let state' = (initializeBattleState setting') & effects .~ effects'
         let test = runCurrentPropertiesTest setting' state' p c
         let es = map (^. factor) $ filter ((onTarget p c) . (^. effectTarget)) effects'
         let f = foldl multPropertyFactor unitPropertyFactor es
@@ -66,12 +59,9 @@ spec = do
              Right result -> return $ result == expected
 
 
-    prop "currentProperties エフェクト対象外" $ do
-        setting' <- arbitrary
-        p <- arbitrary
+    prop "currentProperties エフェクト対象外" $ \setting' effect' p -> do
         c <- chooseTargetCard setting' p
         tc <- chooseTargetCard setting' (opponentPlayer p)
-        effect' <- arbitrary
         let target' = TargetCard (opponentPlayer p) tc
         let state' = (initializeBattleState setting') & effects .~ [(effect' & effectTarget .~ target')]
         let test = runCurrentPropertiesTest setting' state' p c
@@ -81,9 +71,7 @@ spec = do
              Right result -> return $ result == expected
 
     
-    prop "execAction Attack 単体攻撃" $ do
-        setting' <- arbitrary
-        p <- arbitrary
+    prop "execAction Attack 単体攻撃" $ \setting' p -> do
         c <- chooseTargetCard setting' p
         let t = opponentPlayer p
         tc <- chooseTargetCard setting' t
@@ -109,9 +97,7 @@ spec = do
                 else return Prop.failed {Prop.reason = message $ show (result ^? playerStateAccessor t . ix tc)}
 
 
-    prop "execAction Defense" $ do
-        setting' <- arbitrary
-        p <- arbitrary
+    prop "execAction Defense" $ \setting' p -> do
         c <- chooseTargetCard setting' p
         let target' = TargetCard p c
         let state' = initializeBattleState setting'

@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell, ExistentialQuantification #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Battle.Types where
 
@@ -61,12 +61,24 @@ type BattleTurn = ErrorT String (RWS BattleSetting [String] BattleState)
 
 type Targetable = Reader ((BattleSetting, BattleState, Player, Int), Target) (Bool)
 
-data Skill = Skill Action Targetable
+data TargetCapacity =
+    TargetCapacityOne |
+    TargetCapacityTeam |
+    TargetCapacityAll |
+    TargetCapacityAlmighty |
+    TargetCapacityOwn |
+    TargetCapacityOpponent |
+    TargetCapacitySelf |
+    TargetCapacityMixAnd TargetCapacity TargetCapacity |
+    TargetCapacityMixOr TargetCapacity TargetCapacity
+    deriving (Show, Eq)
+
+data Skill = Skill Action TargetCapacity deriving (Show, Eq)
 
 data Card = Card {
     _properties :: PropertySet,
     _skills :: [Skill]
-    }
+    } deriving (Show, Eq)
 
 data CardState = CardState {
     _hp :: Int,
@@ -77,20 +89,20 @@ data BattleEffect = BattleEffect {
     _effectTarget :: Target,
     _factor :: PropertyFactor,
     _remaining :: Maybe Int
-    }
+    } deriving (Show, Eq)
 
 data BattleSetting = BattleSetting {
     _firstCards :: [Card],
     _secondCards :: [Card],
     _maxTurn :: Maybe Int
-    }
+    } deriving (Show, Eq)
 
 data BattleState = BattleState {
     _first :: [CardState],
     _second :: [CardState],
     _effects :: [BattleEffect],
     _remainingTurn :: Maybe Int
-    }
+    } deriving (Show, Eq)
 
 data PlayerCommand = PlayerCommand {
     _cardIndex :: Int,
