@@ -154,8 +154,9 @@ type Targetable = Reader ((BattleSetting, BattleState, Player, Int), Target) (Bo
 
 -- log
 data ActionResult =
-    StateChange Player Int CardState |
-    PropertyChange Player Int PropertySet deriving (Show, Eq)
+    Consume (Player, Int) CardState |
+    StateChange (Player, Int) CardState |
+    PropertyChange (Player, Int) PropertySet deriving (Show, Eq)
 
 newtype EffectExpiration = EffectExpiration BattleEffect deriving (Show, Eq)
 
