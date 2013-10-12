@@ -47,7 +47,7 @@ currentProperties p c = do
          Just c  -> return $ applyEffect s c
     where card' x = cards x ^? ix c
           cards x = (x ^. (playerAccessor p))
-          applyEffect s (Card q _) = applyPropertyFactor q (eff s)
+          applyEffect s (Card _ q _) = applyPropertyFactor q (eff s)
           eff s = foldl multPropertyFactor unitPropertyFactor (effectFactors (s ^. effects))
           effectFactors x = map (^. factor) $ filter ((onTarget p c) . (^. effectTarget)) x
 
@@ -64,7 +64,7 @@ execAction p c Attack t = do
 -- Defense
 execAction p c Defense t = do
     state' <- get
-    let effect' = BattleEffect t unitPropertyFactor{_defenseFactor = 2} (Just 1)
+    let effect' = BattleEffect Defense t unitPropertyFactor{_defenseFactor = 2} (Just 1)
     put $ state' & effects %~ (effect' :)
     where boostDefense d p = p & defense %~ (+d)
 

@@ -48,18 +48,15 @@ data PropertyFactorTag =
     AttackFactor |
     DefenseFactor |
     SpeedFactor |
-    MagicFactor deriving (Show, Eq, Enum)
+    MagicFactor deriving (Show, Eq, Ord, Enum)
 
 data Action =
     Defense |
     Attack |
     Heal Int Int |
+    Boost PropertyFactorTag Double |
     Multi [Action]
     deriving (Show, Eq, Ord)
-
-type BattleTurn = ErrorT String (RWS BattleSetting [String] BattleState)
-
-type Targetable = Reader ((BattleSetting, BattleState, Player, Int), Target) (Bool)
 
 data TargetCapacity =
     TargetCapacityOne |
@@ -76,6 +73,7 @@ data TargetCapacity =
 data Skill = Skill Action TargetCapacity deriving (Show, Eq)
 
 data Card = Card {
+    _cardName :: String,
     _properties :: PropertySet,
     _skills :: [Skill]
     } deriving (Show, Eq)
@@ -86,6 +84,7 @@ data CardState = CardState {
 } deriving (Show, Eq)
 
 data BattleEffect = BattleEffect {
+    _effectAction :: Action,
     _effectTarget :: Target,
     _factor :: PropertyFactor,
     _remaining :: Maybe Int
@@ -148,3 +147,22 @@ propertyFactorAccessor MagicFactor = magicFactor
 opponentPlayer :: Player -> Player
 opponentPlayer FirstPlayer = SecondPlayer
 opponentPlayer SecondPlayer = FirstPlayer
+
+type BattleTurn = ErrorT String (RWS BattleSetting [BattleCommandLog] BattleState)
+
+type Targetable = Reader ((BattleSetting, BattleState, Player, Int), Target) (Bool)
+
+-- log
+data ActionResult =
+    StateChange Player Int CardState |
+    PropertyChange Player Int PropertySet deriving (Show, Eq)
+
+newtype EffectExpiration = EffectExpiration BattleEffect deriving (Show, Eq)
+
+data BattleLog =
+    StateSnapshot BattleState |
+    TurnLog [BattleCommandLog] [EffectExpiration] deriving (Show, Eq)
+
+data BattleCommandLog =
+    BattleCommandLog BattleCommand [ActionResult] deriving (Show, Eq)
+

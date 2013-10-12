@@ -1,3 +1,37 @@
+-----------------------------------------------
+20131012 バトルログ
+
+
+Aの攻撃, Bにxのダメージ
+など
+Bは防御した、Bの防御力がxアップ
+CはDに回復魔法を使った。Dのhpがx回復した
+Eの効果が切れた
+Fは力尽きた
+
+Player Card Attack [(Player, Card, Damage)]
+Player Card Defense [(Player, Card, DefenseUp)]
+Player Card Heal [(Player, Card, HealHp)]
+
+BattleCommand Dif
+
+BattleLog, TurnLog, BattleStateSnapShot
+
+TurnLog
+initialState
+
+data ActionResult =
+    StateChange Player Int CardState Int |
+    PropertyChange Player Int PropertySet
+    Death Player Int
+
+data BattleLog =
+    StateSnapshot BatteState |
+    TurnLog [BattleCommandLog]
+
+EffectExpiration
+Death
+
 ----------------------------------------------
 20131006 Card, Effect
 

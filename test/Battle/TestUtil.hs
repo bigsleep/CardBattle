@@ -8,31 +8,8 @@ import Control.Applicative
 import Control.Lens hiding (Action, elements)
 
 import Battle.Types
+import Battle.Action
 import Battle.Battle
-
-defaultCard :: Card
-defaultCard = Card {
-    _properties = PropertySet {
-        _maxHp = 200,
-        _maxMp = 100,
-        _attack = 50,
-        _defense = 20,
-        _speed = 10,
-        _magic = 10
-        },
-    _skills = []
-    }
-
-defaultTeam :: [Card]
-defaultTeam = L.replicate 4 defaultCard
-
-defaultSetting = BattleSetting {
-    _firstCards = defaultTeam,
-    _secondCards = defaultTeam,
-    _maxTurn = Just 2
-    }
-
-defaultState = initializeBattleState defaultSetting
 
 -- Arbitrary
 instance Arbitrary Player where
@@ -64,7 +41,9 @@ instance Arbitrary PropertyFactor where
 instance Arbitrary Card where
     arbitrary = do
         p <- arbitrary
+        n <- arbitrary
         return $ Card {
+            _cardName = n,
             _properties = p,
             _skills = []
             }
@@ -87,9 +66,14 @@ instance Arbitrary Target where
 instance Arbitrary BattleEffect where
     arbitrary = do
         t <- arbitrary
+        p <- arbitrary
+        f <- arbitrary
         r <- choose (1, 10)
-        factor <- arbitrary
-        return $ BattleEffect t factor (Just r)
+        let factor = unitPropertyFactor & propertyFactorAccessor p %~ (+f)
+        return $ BattleEffect (Boost p f) t factor (Just r)
+
+instance Arbitrary PropertyFactorTag where
+    arbitrary = elements $ enumFrom MaxHpFactor
 
 --
 chooseTargetCard :: BattleSetting -> Player -> Gen Int

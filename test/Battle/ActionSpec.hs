@@ -35,7 +35,7 @@ spec = do
     prop "currentProperties 攻撃力2倍2倍" $ \setting' p -> do
         c <- chooseTargetCard setting' p
         let factor = unitPropertyFactor {_attackFactor = 2}
-        let doubleAttack = BattleEffect TargetAll factor (Just 1)
+        let doubleAttack = BattleEffect (Boost AttackFactor 2) TargetAll factor (Just 1)
         let effects' = [doubleAttack, doubleAttack]
         let state' = (initializeBattleState setting') & effects .~ effects'
         let test = runCurrentPropertiesTest setting' state' p c
