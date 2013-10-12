@@ -65,10 +65,10 @@ Spec.hsというファイルに
 20130923 hspec
 
 cabal install hspec
-cabal install hspec-discovery
+cabal install hspec-discover
 
-hspec-discoveryは~/.cabal/bin以下にあるのでPATHに追加する必要があるっぽい
-hspec-discoveryはソースのファイルに対応するテストファイルを探してくる機能
+hspec-discoverは~/.cabal/bin以下にあるのでPATHに追加する必要があるっぽい
+hspec-discoverはソースのファイルに対応するテストファイルを探してくる機能
 
 cabalはsandboxを使った方がいい?
 sandboxが何かよくわからない。後で調べる
