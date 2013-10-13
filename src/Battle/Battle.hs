@@ -19,6 +19,7 @@ import Control.Monad.Error.Class
 import Control.Monad.State ()
 import Control.Monad.State.Class (get, put)
 import Control.Monad.Reader.Class (ask)
+import Control.Monad.Writer.Class (tell)
 import Control.Monad.Trans.RWS (RWS, runRWS)
 import Control.Monad.Free ()
 import Control.Monad.Loops (whileM_)
@@ -32,7 +33,7 @@ battle = do
     whileM_ isRunning battleTurn
 
 initializeBattleState :: BattleSetting -> BattleState
-initializeBattleState s = BattleState (initCards $ s ^. firstCards) (initCards $ s ^. secondCards) [] (s ^. maxTurn)
+initializeBattleState s = BattleState (initCards $ s ^. firstCards) (initCards $ s ^. secondCards) [] [] (s ^. maxTurn)
     where maxHp' x = x ^. properties . maxHp
           maxMp' x = x ^. properties . maxMp
           initCards = map (\x -> CardState (maxHp' x) (maxMp' x))
@@ -51,10 +52,13 @@ isRunning = do
 toBattleMachine :: BattleTurn a -> BattleMachine a
 toBattleMachine x = do
     (setting', state') <- get
-    let (r, s, _) = runRWS (runErrorT x) setting' state'
+    let (r, s, l) = runRWS (runErrorT x) setting' state'
     case r of
         Left m -> throwError m
-        Right m -> put (setting', s) >> return m
+        Right m -> do
+            put (setting', s)
+            tell [BattleLog s l []]
+            return m
 
 sortBattleCommands :: [BattleCommand] -> BattleTurn [BattleCommand]
 sortBattleCommands cs = do
@@ -80,7 +84,6 @@ battleTurn :: BattleMachine ()
 battleTurn = do
     xs <- inputFirstPlayerCommands
     ys <- inputSecondPlayerCommands
-    (settings, state) <- get
     xs' <- mapM (toBattleCommand FirstPlayer) xs
     ys' <- mapM (toBattleCommand SecondPlayer) ys
     toBattleMachine $ execTurn (xs' ++ ys')
@@ -89,6 +92,8 @@ execTurn cs = return ()
 {-
 execTurn :: [BattleCommand] -> BattleTurn ()
 execTurn cs = do
+    s <- get
+    put $ s & oneTurnEffects .~ []
     sorted <- sortBattleCommands cs
     forM sorted execCommand
     consumeTurn

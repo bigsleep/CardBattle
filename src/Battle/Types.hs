@@ -99,6 +99,7 @@ data BattleSetting = BattleSetting {
 data BattleState = BattleState {
     _first :: [CardState],
     _second :: [CardState],
+    _oneTurnEffects :: [BattleEffect],
     _effects :: [BattleEffect],
     _remainingTurn :: Maybe Int
     } deriving (Show, Eq)
@@ -160,9 +161,7 @@ data ActionResult =
 
 newtype EffectExpiration = EffectExpiration BattleEffect deriving (Show, Eq)
 
-data BattleLog =
-    StateSnapshot BattleState |
-    TurnLog [BattleCommandLog] [EffectExpiration] deriving (Show, Eq)
+data BattleLog = BattleLog BattleState [BattleCommandLog] [EffectExpiration] deriving (Show, Eq)
 
 data BattleCommandLog =
     BattleCommandLog BattleCommand [ActionResult] deriving (Show, Eq)

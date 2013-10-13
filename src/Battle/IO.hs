@@ -7,6 +7,7 @@ import Control.Monad.State(StateT)
 import Control.Monad.State.Class(get, put)
 import Control.Monad.Reader.Class(ask)
 import Control.Monad.Trans
+import Control.Monad.Trans.RWS (RWST)
 import Control.Monad.Free(Free(Free, Pure))
 import Battle.Types
 
@@ -28,7 +29,7 @@ instance Functor BattleIO where
     fmap f (OutputBattleState s c) = OutputBattleState s (f c)
     fmap f (OutputMessage s c) = OutputMessage s (f c)
 
-type BattleMachine = ErrorT String (StateT (BattleSetting, BattleState) (Free BattleIO))
+type BattleMachine = ErrorT String (RWST () [BattleLog] (BattleSetting, BattleState) (Free BattleIO))
 
 createInput :: ((a -> Free BattleIO a) -> BattleIO (Free BattleIO a)) -> BattleMachine a
 createInput f = lift . lift . Free . f $ \x -> Pure x

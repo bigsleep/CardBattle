@@ -39,6 +39,9 @@ multPropertyFactor :: PropertyFactor -> PropertyFactor -> PropertyFactor
 multPropertyFactor (PropertyFactor a1 b1 c1 d1 e1 f1) (PropertyFactor a2 b2 c2 d2 e2 f2) =
     PropertyFactor (a1 * a2) (b1 * b2) (c1 * c2) (d1 * d2) (e1 * e2) (f1 * f2)
 
+subPropertySet :: PropertySet -> PropertySet -> PropertySet
+subPropertySet (PropertySet a b c d e f) (PropertySet a' b' c' d' e' f') = PropertySet (a - a') (b - b') (c - c') (d - d') (e - e') (f - f')
+
 currentProperties :: Player -> Int -> BattleTurn PropertySet
 currentProperties p c = do
     e <- ask
@@ -49,7 +52,7 @@ currentProperties p c = do
     where card' x = cards x ^? ix c
           cards x = (x ^. (playerAccessor p))
           applyEffect s (Card _ q _) = applyPropertyFactor q (eff s)
-          eff s = foldl multPropertyFactor unitPropertyFactor (effectFactors (s ^. effects))
+          eff s = foldl multPropertyFactor unitPropertyFactor (effectFactors (s ^. oneTurnEffects ++ s ^. effects))
           effectFactors x = map (^. factor) $ filter ((onTarget p c) . (^. effectTarget)) x
 
 execAction :: Player -> Int -> Action -> Target -> BattleTurn ()
@@ -65,9 +68,16 @@ execAction p c Attack t = do
     
 -- Defense
 execAction p c Defense t = do
+    setting' <- ask
     state' <- get
     let effect' = BattleEffect Defense t unitPropertyFactor{_defenseFactor = 2} (Just 1)
-    put $ state' & effects %~ (effect' :)
+    let ts = enumerateAsCards setting' t
+    before <- getProperties ts
+    put $ state' & oneTurnEffects %~ (effect' :)
+    after <- getProperties ts
+    let changes = map (\(tc, (x, y)) -> PropertyChange tc (y `subPropertySet` x)) (ts `zip` (before `zip` after))
+    tell [BattleCommandLog (BattleCommand p c Defense t) changes]
+    where getProperties xs = forM xs (uncurry currentProperties)
 
 -- Heal
 execAction p c (Heal a b) t = do
