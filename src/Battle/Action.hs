@@ -46,13 +46,15 @@ currentProperties :: Player -> Int -> BattleTurn PropertySet
 currentProperties p c = do
     e <- ask
     s <- get
-    case card' e of
+    case (currentProperties' e s p c) of
          Nothing -> throwError "in currentProperties. list index out of range."
-         Just c  -> return $ applyEffect s c
-    where card' x = cards x ^? ix c
-          cards x = (x ^. (playerAccessor p))
-          applyEffect s (Card _ q _) = applyPropertyFactor q (eff s)
-          eff s = foldl multPropertyFactor unitPropertyFactor (effectFactors (s ^. oneTurnEffects ++ s ^. effects))
+         Just x  -> return x
+
+currentProperties' :: BattleSetting -> BattleState -> Player -> Int -> Maybe PropertySet
+currentProperties' e s p c = fmap applyEffect card'
+    where card' = (e ^. (playerAccessor p)) ^? ix c
+          applyEffect (Card _ q _) = applyPropertyFactor q eff
+          eff = foldl multPropertyFactor unitPropertyFactor (effectFactors (s ^. oneTurnEffects ++ s ^. effects))
           effectFactors x = map (^. factor) $ filter ((onTarget p c) . (^. effectTarget)) x
 
 execAction :: Player -> Int -> Action -> Target -> BattleTurn ()

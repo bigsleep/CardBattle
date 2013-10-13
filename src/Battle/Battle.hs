@@ -87,43 +87,43 @@ battleTurn = do
     xs' <- mapM (toBattleCommand FirstPlayer) xs
     ys' <- mapM (toBattleCommand SecondPlayer) ys
     toBattleMachine $ execTurn (xs' ++ ys')
-
-execTurn cs = return ()
-{-
-execTurn :: [BattleCommand] -> BattleTurn ()
-execTurn cs = do
-    s <- get
-    put $ s & oneTurnEffects .~ []
-    sorted <- sortBattleCommands cs
-    forM sorted execCommand
     consumeTurn
     cutoffHpMp
 
-execCommand :: BattleCommand -> BattleTurn ()
-execCommand _ = return ()
-
-consumeTurn :: BattleTurn ()
-consumeTurn = do
+execTurn :: [BattleCommand] -> BattleTurn ()
+execTurn cs = do
+    sorted <- sortBattleCommands cs
+    forM_ sorted execCommand
     s <- get
-    let es = s ^. effects
-    let consumed = map consume es
+    put $ s & oneTurnEffects .~ []
+
+execCommand :: BattleCommand -> BattleTurn ()
+execCommand (BattleCommand p c a t) = execAction p c a t
+
+cutoffHpMp :: BattleMachine ()
+cutoffHpMp = do
+    (setting', state') <- get
+    firstProp <- getProperties setting' state' FirstPlayer
+    secondProp <- getProperties setting' state' SecondPlayer
+    let firstCutoff = map cutoff ((state' ^. first) `zip` firstProp)
+    let secondCutoff = map cutoff ((state' ^. second) `zip` secondProp)
+    put $ (setting', (state' & first .~ firstCutoff) & second .~ secondCutoff)
+    where getProperties e s p = case rs of
+                                     Nothing -> throwError "in cutoffHpMp."
+                                     Just x -> return x
+            where rs = forM cards (currentProperties' e s p)
+                  cards = [0..(cardNum - 1)]
+                  cardNum = length $ e ^. playerAccessor p
+          cutoff (s, p) = CardState (min (s ^. hp) (p ^. maxHp)) (min (s ^. mp) (p ^. maxMp))
+
+consumeTurn :: BattleMachine ()
+consumeTurn = do
+    (e, s) <- get
+    let effs = s ^. effects
+    let consumed = map consume effs
     let filtered = filter activeEffect consumed
-    put $ (s & effects .~ filtered) & remainingTurn %~ (fmap (1-))
+    put $ (e, (s & effects .~ filtered) & remainingTurn %~ fmap (1-))
         where consume e = e & remaining %~ (fmap (1-))
               activeEffect e = case (e ^. remaining) of
                                     Nothing -> True
                                     (Just n) -> n > 0
-
-cutoffHpMp :: BattleTurn ()
-cutoffHpMp = do
-    settings <- ask
-    state <- get
-    let effects' = state ^. effects
-    put $ (state & first %~ (cutoff settings effects' FirstPlayer)) & second %~ (cutoff settings effects' SecondPlayer)
-        where cutoff s e p cs = map (cutoffCard s e cs p) [0..((length cs) - 1)]
-              cutoffCard s e cs p k = CardState (min (c ^. hp) maxHp') (min (c ^. mp) maxMp')
-                where c = cs !! k
-                      properties' = currentProperties s e p k
-                      maxHp' = properties' ^. maxHp
-                      maxMp' = properties' ^. maxMp
--}
