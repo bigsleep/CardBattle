@@ -15,8 +15,8 @@ data BattleIO a =
     LoadSetting (Maybe Int -> a) |
     LoadFirstPlayerCards ([Card] -> a) |
     LoadSecondPlayerCards ([Card] -> a) |
-    InputFirstPlayerCommands ([PlayerCommand] -> a) |
-    InputSecondPlayerCommands ([PlayerCommand] -> a) |
+    InputFirstPlayerCommands [CommandChoice] ([PlayerCommand] -> a) |
+    InputSecondPlayerCommands [CommandChoice] ([PlayerCommand] -> a) |
     OutputBattleState BattleState a |
     OutputMessage String a
 
@@ -24,8 +24,8 @@ instance Functor BattleIO where
     fmap f (LoadSetting g) = LoadSetting (f . g)
     fmap f (LoadFirstPlayerCards g) = LoadFirstPlayerCards (f . g)
     fmap f (LoadSecondPlayerCards g) = LoadSecondPlayerCards (f . g)
-    fmap f (InputFirstPlayerCommands g) = InputFirstPlayerCommands (f . g)
-    fmap f (InputSecondPlayerCommands g) = InputSecondPlayerCommands (f . g)
+    fmap f (InputFirstPlayerCommands cs g) = InputFirstPlayerCommands cs (f . g)
+    fmap f (InputSecondPlayerCommands cs g) = InputSecondPlayerCommands cs (f . g)
     fmap f (OutputBattleState s c) = OutputBattleState s (f c)
     fmap f (OutputMessage s c) = OutputMessage s (f c)
 
@@ -46,11 +46,11 @@ loadFirstPlayerCards = createInput LoadFirstPlayerCards
 loadSecondPlayerCards :: BattleMachine [Card]
 loadSecondPlayerCards =createInput LoadSecondPlayerCards
 
-inputFirstPlayerCommands :: BattleMachine [PlayerCommand]
-inputFirstPlayerCommands = createInput InputFirstPlayerCommands
+inputFirstPlayerCommands :: [CommandChoice] -> BattleMachine [PlayerCommand]
+inputFirstPlayerCommands cs = createInput $ InputFirstPlayerCommands cs
 
-inputSecondPlayerCommands :: BattleMachine [PlayerCommand]
-inputSecondPlayerCommands = createInput InputSecondPlayerCommands
+inputSecondPlayerCommands :: [CommandChoice] -> BattleMachine [PlayerCommand]
+inputSecondPlayerCommands cs = createInput $ InputSecondPlayerCommands cs
 
 outputBattleState :: BattleState -> BattleMachine ()
 outputBattleState = createOutput OutputBattleState

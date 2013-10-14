@@ -65,11 +65,11 @@ instance Arbitrary BattleEffect where
         p <- arbitrary
         f <- arbitrary
         r <- choose (1, 10)
-        let factor = unitPropertyFactor & propertyFactorAccessor p %~ (+f)
-        return $ BattleEffect (Boost p f) t factor (Just r)
+        let factor = unitPropertyFactor & propertyAccessor p %~ (+f)
+        return $ BattleEffect (Buff p f r 0) t factor (Just r)
 
-instance Arbitrary PropertyFactorTag where
-    arbitrary = elements $ enumFrom MaxHpFactor
+instance Arbitrary PropertyTag where
+    arbitrary = elements $ enumFrom MaxHpTag
 
 --
 chooseTargetCard :: BattleSetting -> Player -> Gen Int

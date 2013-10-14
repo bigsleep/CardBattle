@@ -35,7 +35,7 @@ spec = do
     prop "currentProperties 攻撃力2倍2倍" $ \setting' p -> do
         c <- chooseTargetCard setting' p
         let factor = unitPropertyFactor & attack .~ 2
-        let doubleAttack = BattleEffect (Boost AttackFactor 2) TargetAll factor (Just 1)
+        let doubleAttack = BattleEffect (Buff AttackTag 2 1 0) TargetAll factor (Just 1)
         let effects' = [doubleAttack, doubleAttack]
         let state' = (initializeBattleState setting') & effects .~ effects'
         let test = runCurrentPropertiesTest setting' state' p c
@@ -84,17 +84,17 @@ spec = do
         let hp' = tproperties' ^. maxHp
         let damage = min hp' (max 1 (attack' - defense'))
         let test = runExecActionTest setting' state' p c Attack target'
-        let expectedState = state' & playerStateAccessor t . ix tc . hp .~ (hp' - damage)
-        let expected = expectedState ^. playerStateAccessor t 
-        let before = state' ^? playerStateAccessor t . ix tc
+        let expectedState = state' & playerAccessor t . ix tc . hp .~ (hp' - damage)
+        let expected = expectedState ^. playerAccessor t 
+        let before = state' ^? playerAccessor t . ix tc
         let message s = printf
                         "attack: %d\ndefense: %d\nbefore: %s\nexpected: %s\nresult: %s\n"
                         attack' defense' (show before) (show (expected ^? ix tc)) s
         case test of
              Left s -> return Prop.failed {Prop.reason = s}
-             Right result -> if (result ^. playerStateAccessor t) == expected
+             Right result -> if (result ^. playerAccessor t) == expected
                 then return Prop.succeeded
-                else return Prop.failed {Prop.reason = message $ show (result ^? playerStateAccessor t . ix tc)}
+                else return Prop.failed {Prop.reason = message $ show (result ^? playerAccessor t . ix tc)}
 
 
     prop "execAction Defense" $ \setting' p -> do

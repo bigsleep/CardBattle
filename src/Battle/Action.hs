@@ -1,6 +1,7 @@
 module Battle.Action where
 
 import Battle.Types
+import Battle.IO
 import Battle.Target
 
 import Prelude hiding (lookup)
@@ -86,25 +87,37 @@ execAction p c (Heal a b) t = do
     setting' <- ask
     let ts = enumerateAsCards setting' t
     logs <- forM ts (healOne a)
-    state' <- get
-    put $ state' & (playerStateAccessor p . ix c . mp) %~ consumeMp b
+    l <- consumeMp p c b
     tell [BattleCommandLog (BattleCommand p c (Heal a b) t) (l : logs)]
-    where consumeMp x a = max 0 (a - x)
-          l = Consume (p, c) (CardState 0 b)
+
+-- Buff
+execAction p c (Buff q f a b) t = do
+    setting' <- ask
+    state' <- get
+    let factor = unitPropertyFactor & propertyAccessor q .~ f
+    let effect' = BattleEffect (Buff q f a b) t factor (Just a)
+    let ts = enumerateAsCards setting' t
+    before <- getProperties ts
+    put $ state' & effects %~ (effect' :)
+    after <- getProperties ts
+    l <- consumeMp p c b
+    let changes = map (\(tc, (x, y)) -> PropertyChange tc (y `subPropertySet` x)) (ts `zip` (before `zip` after))
+    tell [BattleCommandLog (BattleCommand p c (Buff q f a b) t) (l : changes)]
+    where getProperties xs = forM xs (uncurry currentProperties)
 
 
 -- 単体攻撃
 attackOne :: Int -> (Player, Int) -> BattleTurn ActionResult
 attackOne attack' (tp, tc) = do
     state' <- get 
-    hp' <- getHp (state' ^? (playerStateAccessor tp . ix tc))
+    hp' <- getHp (state' ^? (playerAccessor tp . ix tc))
     if hp' <= 0
         then return (StateChange (tp, tc) (CardState 0 0))
         else do
             prop <- currentProperties tp tc
             let defense' = prop ^. defense
             let damage = min (max 1 (attack' - defense')) hp'
-            put $ state' & (playerStateAccessor tp . ix tc . hp) .~ (hp' - damage)
+            put $ state' & (playerAccessor tp . ix tc . hp) .~ (hp' - damage)
             return (StateChange (tp, tc) (CardState (- damage) 0))
     where getHp (Just d) = return (d ^. hp)
           getHp Nothing = throwError "in attackOne. list index out of range."
@@ -114,14 +127,37 @@ attackOne attack' (tp, tc) = do
 healOne :: Int -> (Player, Int) -> BattleTurn ActionResult
 healOne h (tp, tc) = do
     state' <- get 
-    hp' <- getHp (state' ^? (playerStateAccessor tp . ix tc))
+    hp' <- getHp (state' ^? (playerAccessor tp . ix tc))
     if hp' <= 0
         then return (StateChange (tp, tc) (CardState 0 0))
         else do
             prop <- currentProperties tp tc
             let maxHp' = prop ^. maxHp
             let incHp = max 0 (min h (maxHp' - hp'))
-            put $ state' & (playerStateAccessor tp . ix tc . hp) .~ (hp' + incHp)
+            put $ state' & (playerAccessor tp . ix tc . hp) .~ (hp' + incHp)
             return (StateChange (tp, tc) (CardState incHp 0))
     where getHp (Just d) = return (d ^. hp)
           getHp Nothing = throwError "in healOne. list index out of range."
+
+
+-- canPerform
+canPerform :: CardState -> Skill -> Bool
+
+canPerform _ (Skill Attack _) = True
+
+canPerform _ (Skill Defense _) = True
+
+canPerform s (Skill (Heal a b) _) = s ^. mp >= b
+
+consumeMp :: Player -> Int -> Int -> BattleTurn ActionResult
+consumeMp p c q = do
+    s <- get
+    mp' <- getMp s
+    if mp' >= q
+        then put $ s & playerAccessor p . ix c . mp .~ (mp' - q)
+        else throwError "in consumeMp. mp less than consumption."
+    return $ Consume (p, c) (CardState 0 q)
+    where getMp x = case x ^? playerAccessor p . ix c . mp of
+                         Nothing -> throwError "in consumeMp."
+                         Just y -> return y
+

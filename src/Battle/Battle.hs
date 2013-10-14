@@ -33,7 +33,7 @@ battle = do
     whileM_ isRunning battleTurn
 
 initializeBattleState :: BattleSetting -> BattleState
-initializeBattleState s = BattleState (initCards $ s ^. firstCards) (initCards $ s ^. secondCards) [] [] (s ^. maxTurn)
+initializeBattleState s = BattleState (initCards $ s ^. first) (initCards $ s ^. second) [] [] (s ^. maxTurn)
     where maxHp' x = x ^. properties . maxHp
           maxMp' x = x ^. properties . maxMp
           initCards = map (\x -> CardState (maxHp' x) (maxMp' x))
@@ -82,8 +82,8 @@ toBattleCommand p (PlayerCommand c s t)  = do
 
 battleTurn :: BattleMachine ()
 battleTurn = do
-    xs <- inputFirstPlayerCommands
-    ys <- inputSecondPlayerCommands
+    xs <- (enumerateCommandChoice FirstPlayer) >>= inputFirstPlayerCommands
+    ys <- (enumerateCommandChoice SecondPlayer) >>= inputSecondPlayerCommands
     xs' <- mapM (toBattleCommand FirstPlayer) xs
     ys' <- mapM (toBattleCommand SecondPlayer) ys
     toBattleMachine $ execTurn (xs' ++ ys')
@@ -127,3 +127,23 @@ consumeTurn = do
               activeEffect e = case (e ^. remaining) of
                                     Nothing -> True
                                     (Just n) -> n > 0
+
+enumerateCommandChoice :: Player -> BattleMachine [CommandChoice]
+enumerateCommandChoice p = do
+    (setting', state') <- get
+    let cards = setting' ^. playerAccessor p
+    let cardStates = state' ^. playerAccessor p
+    let cardNum = length cards
+    let withIndex = zip3 [0..(cardNum - 1)] cards cardStates
+    mapM applyCard . filter active $ withIndex
+    where active (_, _, x) = x ^. hp > 0
+          applyCard (i, x, y) = enumerateActionChoice p i x y >>= \ac -> return $ CommandChoice i ac
+
+enumerateActionChoice :: Player -> Int -> Card -> CardState -> BattleMachine [ActionChoice]
+enumerateActionChoice p c q s = do
+    (setting', state') <- get
+    return $ actionChoices setting' state'
+    where executables = filter (canPerform s) (q ^. skills)
+          withIndex = zip [0..(length executables - 1)] executables
+          actionChoices e s = map (apply e s) withIndex
+          apply e s (i, (Skill a t)) = ActionChoice i a (enumerateTargets e s p c (targetable t)) 

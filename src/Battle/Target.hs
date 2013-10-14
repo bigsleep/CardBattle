@@ -18,8 +18,8 @@ onTarget q y (TargetCard p x) = p == q && x == y
 enumerateAllTargets :: BattleSetting -> [Target]
 enumerateAllTargets e =
     f ++ s ++ [TargetTeam FirstPlayer, TargetTeam SecondPlayer, TargetAll]
-    where f = map (\c -> TargetCard FirstPlayer c) [0..(length (e ^. firstCards) - 1)]
-          s = map (\c -> TargetCard SecondPlayer c) [0..(length (e ^. secondCards) - 1)]
+    where f = map (\c -> TargetCard FirstPlayer c) [0..(length (e ^. first) - 1)]
+          s = map (\c -> TargetCard SecondPlayer c) [0..(length (e ^. second) - 1)]
 
 -- ターゲット列挙
 enumerateTargets :: BattleSetting -> BattleState -> Player -> Int -> Targetable -> [Target]

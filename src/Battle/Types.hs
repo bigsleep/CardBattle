@@ -45,20 +45,19 @@ data PropertyFactor = PropertyFactor {
     _propertyfactorMagic :: Double
     } deriving (Show, Eq)
     
-data PropertyFactorTag =
-    MaxHpFactor |
-    MaxMpFactor |
-    AttackFactor |
-    DefenseFactor |
-    SpeedFactor |
-    MagicFactor deriving (Show, Eq, Ord, Enum)
+data PropertyTag =
+    MaxHpTag |
+    MaxMpTag |
+    AttackTag |
+    DefenseTag |
+    SpeedTag |
+    MagicTag deriving (Show, Eq, Ord, Enum)
 
 data Action =
     Defense |
     Attack |
     Heal Int Int |
-    Boost PropertyFactorTag Double |
-    Multi [Action]
+    Buff PropertyTag Double Int Int
     deriving (Show, Eq, Ord)
 
 data TargetCapacity =
@@ -94,8 +93,8 @@ data BattleEffect = BattleEffect {
     } deriving (Show, Eq)
 
 data BattleSetting = BattleSetting {
-    _battlesettingFirstCards :: [Card],
-    _battlesettingSecondCards :: [Card],
+    _battlesettingFirst :: [Card],
+    _battlesettingSecond :: [Card],
     _battlesettingMaxTurn :: Maybe Int
     } deriving (Show, Eq)
 
@@ -120,6 +119,17 @@ data BattleCommand = BattleCommand {
     _battlecommandTarget :: Target
     } deriving (Show, Eq)
 
+data CommandChoice = CommandChoice {
+    _commandchoiceCardIndex :: Int,
+    _commandchoiceActions :: [ActionChoice]
+    } deriving (Show, Eq)
+
+data ActionChoice = ActionChoice {
+    _actionchoiceSkillIndex :: Int,
+    _actionchoiceAction :: Action,
+    _actionchoiceTargets :: [Target]
+    } deriving (Show, Eq)
+
 -- Lenses
 $(makeFields ''PropertySet)
 $(makeFields ''PropertyFactor)
@@ -130,22 +140,22 @@ $(makeFields ''BattleState)
 $(makeFields ''PlayerCommand)
 $(makeFields ''BattleEffect)
 $(makeFields ''BattleCommand)
+$(makeFields ''CommandChoice)
+$(makeFields ''ActionChoice)
 
-playerAccessor :: Player -> Lens' BattleSetting [Card]
-playerAccessor FirstPlayer = firstCards
-playerAccessor SecondPlayer = secondCards
+playerAccessor :: (HasFirst a b, HasSecond a b)
+               => Player -> Lens' a b
+playerAccessor FirstPlayer = first
+playerAccessor SecondPlayer = second
 
-playerStateAccessor :: Player -> Lens' BattleState [CardState]
-playerStateAccessor FirstPlayer = first
-playerStateAccessor SecondPlayer = second
-
-propertyFactorAccessor :: PropertyFactorTag -> Lens' PropertyFactor Double
-propertyFactorAccessor MaxHpFactor = maxHp
-propertyFactorAccessor MaxMpFactor = maxMp
-propertyFactorAccessor AttackFactor = attack
-propertyFactorAccessor DefenseFactor = defense
-propertyFactorAccessor SpeedFactor = speed
-propertyFactorAccessor MagicFactor = magic
+propertyAccessor :: (HasMaxHp a b, HasMaxMp a b, HasAttack a b, HasDefense a b, HasSpeed a b, HasMagic a b)
+                 => PropertyTag -> Lens' a b
+propertyAccessor MaxHpTag = maxHp
+propertyAccessor MaxMpTag = maxMp
+propertyAccessor AttackTag = attack
+propertyAccessor DefenseTag = defense
+propertyAccessor SpeedTag = speed
+propertyAccessor MagicTag = magic
 
 opponentPlayer :: Player -> Player
 opponentPlayer FirstPlayer = SecondPlayer
@@ -167,4 +177,3 @@ data BattleLog = BattleLog BattleState [BattleCommandLog] [EffectExpiration] der
 
 data BattleCommandLog =
     BattleCommandLog BattleCommand [ActionResult] deriving (Show, Eq)
-
