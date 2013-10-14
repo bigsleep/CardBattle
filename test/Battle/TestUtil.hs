@@ -42,11 +42,7 @@ instance Arbitrary Card where
     arbitrary = do
         p <- arbitrary
         n <- arbitrary
-        return $ Card {
-            _cardName = n,
-            _properties = p,
-            _skills = []
-            }
+        return $ Card n p []
 
 instance Arbitrary BattleSetting where
     arbitrary = do

@@ -34,7 +34,7 @@ spec = do
 
     prop "currentProperties 攻撃力2倍2倍" $ \setting' p -> do
         c <- chooseTargetCard setting' p
-        let factor = unitPropertyFactor {_attackFactor = 2}
+        let factor = unitPropertyFactor & attack .~ 2
         let doubleAttack = BattleEffect (Boost AttackFactor 2) TargetAll factor (Just 1)
         let effects' = [doubleAttack, doubleAttack]
         let state' = (initializeBattleState setting') & effects .~ effects'
@@ -50,7 +50,7 @@ spec = do
         c <- chooseTargetCard setting' p
         let state' = (initializeBattleState setting') & effects .~ effects'
         let test = runCurrentPropertiesTest setting' state' p c
-        let es = map (^. factor) $ filter ((onTarget p c) . (^. effectTarget)) effects'
+        let es = map (^. factor) $ filter ((onTarget p c) . (^. target)) effects'
         let f = foldl multPropertyFactor unitPropertyFactor es
         let before = (setting' ^. (playerAccessor p)) !! c ^. properties
         let expected = before `applyPropertyFactor` f
@@ -63,7 +63,7 @@ spec = do
         c <- chooseTargetCard setting' p
         tc <- chooseTargetCard setting' (opponentPlayer p)
         let target' = TargetCard (opponentPlayer p) tc
-        let state' = (initializeBattleState setting') & effects .~ [(effect' & effectTarget .~ target')]
+        let state' = (initializeBattleState setting') & effects .~ [(effect' & target .~ target')]
         let test = runCurrentPropertiesTest setting' state' p c
         let expected = ((setting' ^. (playerAccessor p)) !! c ^. properties)
         case test of

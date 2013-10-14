@@ -55,7 +55,7 @@ currentProperties' e s p c = fmap applyEffect card'
     where card' = (e ^. (playerAccessor p)) ^? ix c
           applyEffect (Card _ q _) = applyPropertyFactor q eff
           eff = foldl multPropertyFactor unitPropertyFactor (effectFactors (s ^. oneTurnEffects ++ s ^. effects))
-          effectFactors x = map (^. factor) $ filter ((onTarget p c) . (^. effectTarget)) x
+          effectFactors x = map (^. factor) $ filter ((onTarget p c) . (^. target)) x
 
 execAction :: Player -> Int -> Action -> Target -> BattleTurn ()
 
@@ -72,7 +72,7 @@ execAction p c Attack t = do
 execAction p c Defense t = do
     setting' <- ask
     state' <- get
-    let effect' = BattleEffect Defense t unitPropertyFactor{_defenseFactor = 2} (Just 1)
+    let effect' = BattleEffect Defense t (unitPropertyFactor & defense .~ 2) (Just 1)
     let ts = enumerateAsCards setting' t
     before <- getProperties ts
     put $ state' & oneTurnEffects %~ (effect' :)

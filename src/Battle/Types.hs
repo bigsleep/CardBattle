@@ -1,5 +1,8 @@
-{-# LANGUAGE TemplateHaskell #-}
-
+{-# LANGUAGE FlexibleInstances      #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE MultiParamTypeClasses  #-}
+{-# LANGUAGE TemplateHaskell        #-}
+{-# LANGUAGE TypeSynonymInstances   #-}
 module Battle.Types where
 
 import Prelude hiding (lookup)
@@ -25,21 +28,21 @@ data Target =
     TargetCard Player Int deriving (Show, Eq)
 
 data PropertySet = PropertySet {
-    _maxHp :: Int,
-    _maxMp :: Int,
-    _attack :: Int,
-    _defense :: Int,
-    _speed :: Int,
-    _magic :: Int
+    _propertysetMaxHp :: Int,
+    _propertysetMaxMp :: Int,
+    _propertysetAttack :: Int,
+    _propertysetDefense :: Int,
+    _propertysetSpeed :: Int,
+    _propertysetMagic :: Int
     } deriving (Show, Eq)
 
 data PropertyFactor = PropertyFactor {
-    _maxHpFactor :: Double,
-    _maxMpFactor :: Double,
-    _attackFactor :: Double,
-    _defenseFactor :: Double,
-    _speedFactor :: Double,
-    _magicFactor :: Double
+    _propertyfactorMaxHp :: Double,
+    _propertyfactorMaxMp :: Double,
+    _propertyfactorAttack :: Double,
+    _propertyfactorDefense :: Double,
+    _propertyfactorSpeed :: Double,
+    _propertyfactorMagic :: Double
     } deriving (Show, Eq)
     
 data PropertyFactorTag =
@@ -74,60 +77,59 @@ data Skill = Skill Action TargetCapacity deriving (Show, Eq)
 
 data Card = Card {
     _cardName :: String,
-    _properties :: PropertySet,
-    _skills :: [Skill]
+    _cardProperties :: PropertySet,
+    _cardSkills :: [Skill]
     } deriving (Show, Eq)
 
 data CardState = CardState {
-    _hp :: Int,
-    _mp :: Int
+    _cardstateHp :: Int,
+    _cardstateMp :: Int
 } deriving (Show, Eq)
 
 data BattleEffect = BattleEffect {
-    _effectAction :: Action,
-    _effectTarget :: Target,
-    _factor :: PropertyFactor,
-    _remaining :: Maybe Int
+    _battleeffectAction :: Action,
+    _battleeffectTarget :: Target,
+    _battleeffectFactor :: PropertyFactor,
+    _battleeffectRemaining :: Maybe Int
     } deriving (Show, Eq)
 
 data BattleSetting = BattleSetting {
-    _firstCards :: [Card],
-    _secondCards :: [Card],
-    _maxTurn :: Maybe Int
+    _battlesettingFirstCards :: [Card],
+    _battlesettingSecondCards :: [Card],
+    _battlesettingMaxTurn :: Maybe Int
     } deriving (Show, Eq)
 
 data BattleState = BattleState {
-    _first :: [CardState],
-    _second :: [CardState],
-    _oneTurnEffects :: [BattleEffect],
-    _effects :: [BattleEffect],
-    _remainingTurn :: Maybe Int
+    _battlestateFirst :: [CardState],
+    _battlestateSecond :: [CardState],
+    _battlestateOneTurnEffects :: [BattleEffect],
+    _battlestateEffects :: [BattleEffect],
+    _battlestateRemainingTurn :: Maybe Int
     } deriving (Show, Eq)
 
 data PlayerCommand = PlayerCommand {
-    _cardIndex :: Int,
-    _skillIndex :: Int,
-    _targetIndex :: Int
+    _playercommandCardIndex :: Int,
+    _playercommandSkillIndex :: Int,
+    _playercommandTargetIndex :: Int
     } deriving (Show, Eq)
 
 data BattleCommand = BattleCommand {
-    _player :: Player,
-    _card :: Int,
-    _action :: Action,
-    _target :: Target
+    _battlecommandPlayer :: Player,
+    _battlecommandCard :: Int,
+    _battlecommandAction :: Action,
+    _battlecommandTarget :: Target
     } deriving (Show, Eq)
 
 -- Lenses
-$(makeLenses ''PropertySet)
-$(makeLenses ''PropertyFactor)
-$(makeLenses ''Action)
-$(makeLenses ''Card)
-$(makeLenses ''CardState)
-$(makeLenses ''BattleSetting)
-$(makeLenses ''BattleState)
-$(makeLenses ''PlayerCommand)
-$(makeLenses ''BattleEffect)
-$(makeLenses ''BattleCommand)
+$(makeFields ''PropertySet)
+$(makeFields ''PropertyFactor)
+$(makeFields ''Card)
+$(makeFields ''CardState)
+$(makeFields ''BattleSetting)
+$(makeFields ''BattleState)
+$(makeFields ''PlayerCommand)
+$(makeFields ''BattleEffect)
+$(makeFields ''BattleCommand)
 
 playerAccessor :: Player -> Lens' BattleSetting [Card]
 playerAccessor FirstPlayer = firstCards
@@ -138,12 +140,12 @@ playerStateAccessor FirstPlayer = first
 playerStateAccessor SecondPlayer = second
 
 propertyFactorAccessor :: PropertyFactorTag -> Lens' PropertyFactor Double
-propertyFactorAccessor MaxHpFactor = maxHpFactor
-propertyFactorAccessor MaxMpFactor = maxMpFactor
-propertyFactorAccessor AttackFactor = attackFactor
-propertyFactorAccessor DefenseFactor = defenseFactor
-propertyFactorAccessor SpeedFactor = speedFactor
-propertyFactorAccessor MagicFactor = magicFactor
+propertyFactorAccessor MaxHpFactor = maxHp
+propertyFactorAccessor MaxMpFactor = maxMp
+propertyFactorAccessor AttackFactor = attack
+propertyFactorAccessor DefenseFactor = defense
+propertyFactorAccessor SpeedFactor = speed
+propertyFactorAccessor MagicFactor = magic
 
 opponentPlayer :: Player -> Player
 opponentPlayer FirstPlayer = SecondPlayer
