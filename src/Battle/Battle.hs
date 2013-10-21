@@ -147,3 +147,4 @@ enumerateActionChoice p c q s = do
           withIndex = zip [0..(length executables - 1)] executables
           actionChoices e s = map (apply e s) withIndex
           apply e s (i, (Skill a t)) = ActionChoice i a (enumerateTargets e s p c (targetable t)) 
+

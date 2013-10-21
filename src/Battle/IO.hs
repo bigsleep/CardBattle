@@ -9,6 +9,8 @@ import Control.Monad.Reader.Class(ask)
 import Control.Monad.Trans
 import Control.Monad.Trans.RWS (RWST)
 import Control.Monad.Free(Free(Free, Pure))
+import Control.Lens hiding (Action)
+
 import Battle.Types
 
 data BattleIO a =
@@ -44,16 +46,35 @@ loadFirstPlayerCards :: BattleMachine [Card]
 loadFirstPlayerCards = createInput LoadFirstPlayerCards
 
 loadSecondPlayerCards :: BattleMachine [Card]
-loadSecondPlayerCards =createInput LoadSecondPlayerCards
+loadSecondPlayerCards = createInput LoadSecondPlayerCards
 
 inputFirstPlayerCommands :: [CommandChoice] -> BattleMachine [PlayerCommand]
-inputFirstPlayerCommands cs = createInput $ InputFirstPlayerCommands cs
+inputFirstPlayerCommands cs = createInput (InputFirstPlayerCommands cs) >>= checkInputCommands cs
 
 inputSecondPlayerCommands :: [CommandChoice] -> BattleMachine [PlayerCommand]
-inputSecondPlayerCommands cs = createInput $ InputSecondPlayerCommands cs
+inputSecondPlayerCommands cs = createInput (InputSecondPlayerCommands cs) >>= checkInputCommands cs
 
 outputBattleState :: BattleState -> BattleMachine ()
 outputBattleState = createOutput OutputBattleState
 
 outputMessage :: String -> BattleMachine ()
 outputMessage = createOutput OutputMessage
+
+checkInputCommands :: [CommandChoice] -> [PlayerCommand] -> BattleMachine [PlayerCommand]
+checkInputCommands cs ps = do
+    checkLength
+    forM_ (zip cs ps) check
+    return ps
+    where checkLength = if length cs /= length ps
+                           then throwError "in checkInputCommand. invalid size."
+                           else forM (zip cs ps) check
+          check (a, b) = if a ^. cardIndex /= b ^. cardIndex
+                            then throwError "in checkInputCommand. invalid cardIndex."
+                            else checkAction a b
+          checkAction a b = case a ^? actions . ix (b ^. skillIndex) of
+                                 Nothing -> throwError "in checkInputCommand. invalid skillIndex."
+                                 Just x -> checkTarget (x ^. targets) (b ^. targetIndex)
+          checkTarget a b = case a ^? ix b of
+                                 Nothing -> throwError "in checkInputCommand. invalid targetIndex."
+                                 Just x -> return ()
+
