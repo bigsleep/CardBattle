@@ -98,7 +98,15 @@ execTurn cs = do
     put $ s & oneTurnEffects .~ []
 
 execCommand :: BattleCommand -> BattleTurn ()
-execCommand (BattleCommand p c a t) = execAction p c a t
+execCommand (BattleCommand p c a t) = do
+    state' <- get
+    card' <- getCardState state'
+    if canPerform card' a
+        then execAction p c a t
+        else tell [BattleCommandLog (BattleCommand p c a t) [Underqualified]]
+    where getCardState s = case s ^? playerAccessor p . ix c of
+                                Nothing -> throwError "in execCommand."
+                                Just x -> return x
 
 cutoffHpMp :: BattleMachine ()
 cutoffHpMp = do
@@ -143,7 +151,7 @@ enumerateActionChoice :: Player -> Int -> Card -> CardState -> BattleMachine [Ac
 enumerateActionChoice p c q s = do
     (setting', state') <- get
     return $ actionChoices setting' state'
-    where executables = filter (canPerform s) (q ^. skills)
+    where executables = filter (canPerform s . (^. action)) (q ^. skills)
           withIndex = zip [0..(length executables - 1)] executables
           actionChoices e s = map (apply e s) withIndex
           apply e s (i, (Skill a t)) = ActionChoice i a (enumerateTargets e s p c (targetable t)) 

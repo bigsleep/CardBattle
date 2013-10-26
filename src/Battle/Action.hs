@@ -112,7 +112,7 @@ attackOne attack' (tp, tc) = do
     state' <- get 
     hp' <- getHp (state' ^? (playerAccessor tp . ix tc))
     if hp' <= 0
-        then return (StateChange (tp, tc) (CardState 0 0))
+        then return ActionFailure
         else do
             prop <- currentProperties tp tc
             let defense' = prop ^. defense
@@ -129,7 +129,7 @@ healOne h (tp, tc) = do
     state' <- get 
     hp' <- getHp (state' ^? (playerAccessor tp . ix tc))
     if hp' <= 0
-        then return (StateChange (tp, tc) (CardState 0 0))
+        then return ActionFailure
         else do
             prop <- currentProperties tp tc
             let maxHp' = prop ^. maxHp
@@ -141,13 +141,15 @@ healOne h (tp, tc) = do
 
 
 -- canPerform
-canPerform :: CardState -> Skill -> Bool
+canPerform :: CardState -> Action -> Bool
 
-canPerform _ (Skill Attack _) = True
+canPerform _ Attack = True
 
-canPerform _ (Skill Defense _) = True
+canPerform _ Defense = True
 
-canPerform s (Skill (Heal a b) _) = s ^. mp >= b
+canPerform s (Heal a b) = s ^. mp >= b
+
+canPerform s (Buff q f a b) = s ^. mp >= b
 
 consumeMp :: Player -> Int -> Int -> BattleTurn ActionResult
 consumeMp p c q = do

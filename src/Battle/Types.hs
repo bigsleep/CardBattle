@@ -72,7 +72,10 @@ data TargetCapacity =
     TargetCapacityMixOr TargetCapacity TargetCapacity
     deriving (Show, Eq)
 
-data Skill = Skill Action TargetCapacity deriving (Show, Eq)
+data Skill = Skill {
+    _skillAction :: Action,
+    _skillTarget :: TargetCapacity
+    } deriving (Show, Eq)
 
 data Card = Card {
     _cardName :: String,
@@ -142,6 +145,7 @@ $(makeFields ''BattleEffect)
 $(makeFields ''BattleCommand)
 $(makeFields ''CommandChoice)
 $(makeFields ''ActionChoice)
+$(makeFields ''Skill)
 
 playerAccessor :: (HasFirst a b, HasSecond a b)
                => Player -> Lens' a b
@@ -169,7 +173,9 @@ type Targetable = Reader ((BattleSetting, BattleState, Player, Int), Target) (Bo
 data ActionResult =
     Consume (Player, Int) CardState |
     StateChange (Player, Int) CardState |
-    PropertyChange (Player, Int) PropertySet deriving (Show, Eq)
+    PropertyChange (Player, Int) PropertySet |
+    Underqualified |
+    ActionFailure deriving (Show, Eq)
 
 newtype EffectExpiration = EffectExpiration BattleEffect deriving (Show, Eq)
 
