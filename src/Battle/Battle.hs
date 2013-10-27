@@ -11,7 +11,7 @@ import Data.Maybe ()
 import GHC.Exts(sortWith)
 import qualified Data.Ord as Ord (compare)
 import qualified Data.Set as Set hiding (map, filter, foldl, insert)
-import Control.Applicative(liftA2)
+import Control.Applicative(liftA2, (<$>))
 import Control.Lens hiding (Action)
 import Control.Monad (forM, when)
 import Control.Monad.Error
@@ -26,28 +26,26 @@ import Control.Monad.Loops (whileM_)
 
 battle :: BattleMachine ()
 battle = do
-    turns <- loadSetting
-    fcs <- loadFirstPlayerCards
-    scs <- loadSecondPlayerCards
-    put ((BattleSetting fcs scs turns), initializeBattleState (BattleSetting fcs scs turns))
+    setting' <- loadSetting
+    put (setting', initializeBattleState setting')
     whileM_ isRunning battleTurn
 
 initializeBattleState :: BattleSetting -> BattleState
-initializeBattleState s = BattleState (initCards $ s ^. first) (initCards $ s ^. second) [] [] (s ^. maxTurn)
+initializeBattleState s = BattleState (initCards $ s ^. first) (initCards $ s ^. second) [] [] 0
     where maxHp' x = x ^. properties . maxHp
           maxMp' x = x ^. properties . maxMp
           initCards = map (\x -> CardState (maxHp' x) (maxMp' x))
 
 isRunning :: BattleMachine Bool
 isRunning = do
-    (_, s) <- get
-    return $ firstAlive s && secondAlive s && turnRemain s
+    (e, s) <- get
+    return $ firstAlive s && secondAlive s && turnRemain e s
     where firstAlive x = (foldl cardAlive 0 (x ^. first)) > 0
           secondAlive x = (foldl cardAlive 0 (x ^. second)) > 0
           cardAlive x c = if (c ^. hp) > 0 then x + 1 else x
-          turnRemain x = case (x ^. remainingTurn) of
+          turnRemain e s = case e ^. maxTurn of
                               Nothing -> True
-                              (Just n) -> n > 0
+                              Just n -> s ^. turn < n
 
 toBattleMachine :: BattleTurn a -> BattleMachine a
 toBattleMachine x = do
@@ -82,8 +80,9 @@ toBattleCommand p (PlayerCommand c s t)  = do
 
 battleTurn :: BattleMachine ()
 battleTurn = do
-    xs <- (enumerateCommandChoice FirstPlayer) >>= inputFirstPlayerCommands
-    ys <- (enumerateCommandChoice SecondPlayer) >>= inputSecondPlayerCommands
+    t <- (get >>= return . (^. _2 . turn))
+    xs <- (enumerateCommandChoice FirstPlayer) >>= inputPlayerCommands t FirstPlayer
+    ys <- (enumerateCommandChoice SecondPlayer) >>= inputPlayerCommands t SecondPlayer
     xs' <- mapM (toBattleCommand FirstPlayer) xs
     ys' <- mapM (toBattleCommand SecondPlayer) ys
     toBattleMachine $ execTurn (xs' ++ ys')
@@ -127,11 +126,10 @@ cutoffHpMp = do
 consumeTurn :: BattleMachine ()
 consumeTurn = do
     (e, s) <- get
-    let effs = s ^. effects
-    let consumed = map consume effs
+    let consumed = map consume (s ^. effects)
     let filtered = filter activeEffect consumed
-    put $ (e, (s & effects .~ filtered) & remainingTurn %~ fmap (1-))
-        where consume e = e & remaining %~ (fmap (1-))
+    put $ (e, (s & effects .~ filtered) & turn %~ (+1))
+        where consume e = e & remaining %~ fmap (\x -> x - 1)
               activeEffect e = case (e ^. remaining) of
                                     Nothing -> True
                                     (Just n) -> n > 0

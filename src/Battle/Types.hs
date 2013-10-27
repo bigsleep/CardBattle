@@ -106,7 +106,7 @@ data BattleState = BattleState {
     _battlestateSecond :: [CardState],
     _battlestateOneTurnEffects :: [BattleEffect],
     _battlestateEffects :: [BattleEffect],
-    _battlestateRemainingTurn :: Maybe Int
+    _battlestateTurn :: Int
     } deriving (Show, Eq)
 
 data PlayerCommand = PlayerCommand {

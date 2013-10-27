@@ -14,20 +14,14 @@ import Control.Lens hiding (Action)
 import Battle.Types
 
 data BattleIO a =
-    LoadSetting (Maybe Int -> a) |
-    LoadFirstPlayerCards ([Card] -> a) |
-    LoadSecondPlayerCards ([Card] -> a) |
-    InputFirstPlayerCommands [CommandChoice] ([PlayerCommand] -> a) |
-    InputSecondPlayerCommands [CommandChoice] ([PlayerCommand] -> a) |
+    LoadSetting (BattleSetting -> a) |
+    InputPlayerCommands Int Player [CommandChoice] ([PlayerCommand] -> a) |
     OutputBattleState BattleState a |
     OutputMessage String a
 
 instance Functor BattleIO where
     fmap f (LoadSetting g) = LoadSetting (f . g)
-    fmap f (LoadFirstPlayerCards g) = LoadFirstPlayerCards (f . g)
-    fmap f (LoadSecondPlayerCards g) = LoadSecondPlayerCards (f . g)
-    fmap f (InputFirstPlayerCommands cs g) = InputFirstPlayerCommands cs (f . g)
-    fmap f (InputSecondPlayerCommands cs g) = InputSecondPlayerCommands cs (f . g)
+    fmap f (InputPlayerCommands t p cs g) = InputPlayerCommands t p cs (f . g)
     fmap f (OutputBattleState s c) = OutputBattleState s (f c)
     fmap f (OutputMessage s c) = OutputMessage s (f c)
 
@@ -39,20 +33,11 @@ createInput f = lift . lift . Free . f $ \x -> Pure x
 createOutput :: (a -> Free BattleIO () -> BattleIO (Free BattleIO ())) -> a -> BattleMachine ()
 createOutput f x = lift . lift . Free $ f x (Pure ())
 
-loadSetting :: BattleMachine (Maybe Int)
+loadSetting :: BattleMachine BattleSetting
 loadSetting = createInput LoadSetting
 
-loadFirstPlayerCards :: BattleMachine [Card]
-loadFirstPlayerCards = createInput LoadFirstPlayerCards
-
-loadSecondPlayerCards :: BattleMachine [Card]
-loadSecondPlayerCards = createInput LoadSecondPlayerCards
-
-inputFirstPlayerCommands :: [CommandChoice] -> BattleMachine [PlayerCommand]
-inputFirstPlayerCommands cs = createInput (InputFirstPlayerCommands cs) >>= checkInputCommands cs
-
-inputSecondPlayerCommands :: [CommandChoice] -> BattleMachine [PlayerCommand]
-inputSecondPlayerCommands cs = createInput (InputSecondPlayerCommands cs) >>= checkInputCommands cs
+inputPlayerCommands :: Int -> Player -> [CommandChoice] -> BattleMachine [PlayerCommand]
+inputPlayerCommands t p cs = createInput (InputPlayerCommands t p cs) >>= checkInputCommands cs
 
 outputBattleState :: BattleState -> BattleMachine ()
 outputBattleState = createOutput OutputBattleState

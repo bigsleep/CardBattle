@@ -118,7 +118,7 @@ runCurrentPropertiesTest e s p c = result
     where m = currentProperties p c
           (result, _, _) = runRWS (runErrorT m) e s
 
-runExecActionTest ::BattleSetting -> BattleState -> Player -> Int -> Action -> Target -> Either String BattleState
+runExecActionTest :: BattleSetting -> BattleState -> Player -> Int -> Action -> Target -> Either String BattleState
 runExecActionTest e s p c a t = result
     where m = execAction p c a t >> get
           (result, _, _) = runRWS (runErrorT m) e s
