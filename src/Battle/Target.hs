@@ -4,6 +4,7 @@ module Battle.Target where
 import Control.Applicative((<*>), (<$>), liftA2)
 import Control.Monad(filterM)
 import Control.Monad.State.Class(get, put)
+import Control.Monad.Reader(Reader())
 import Control.Monad.Reader(runReader, withReaderT)
 import Control.Monad.Reader.Class(ask)
 import Control.Lens hiding (Action)
@@ -36,23 +37,15 @@ enumerateAsCards e TargetAll = (enumerate FirstPlayer) ++ (enumerate SecondPlaye
     where enumerate p = enumerateAsCards e (TargetTeam p)
 
 -- targetable
-targetable :: TargetCapacity -> Targetable
-targetable TargetCapacityOne = targetableOne
-targetable TargetCapacityTeam = targetableTeam
-targetable TargetCapacityAll = targetableAll
-targetable TargetCapacityAlmighty = targetableAlmighty
-targetable TargetCapacityOwn = targetableOwn
-targetable TargetCapacityOpponent = targetableOpponent
-targetable TargetCapacitySelf = targetableSelf
-targetable (TargetCapacityMixAnd a b) = targetable a `comb` targetable b
-    where comb = liftA2 (&&)
-targetable (TargetCapacityMixOr a b) = targetable a `comb` targetable b
-    where comb = liftA2 (||)
+type Targetable = Reader ((BattleSetting, BattleState, Player, Int), Target) (Bool)
 
 -- 全て
 targetableAlmighty :: Targetable
 targetableAlmighty = return True
 
+-- 空
+targetableNothing :: Targetable
+targetableNothing = return False
 
 -- カード位置同じ
 targetableSamePosition :: Targetable
@@ -93,3 +86,16 @@ targetableAll = ask >>= f
 targetableSelf :: Targetable
 targetableSelf = targetableSamePosition `comb` targetableOwn
     where comb = liftA2 (&&)
+
+targetable :: TargetCapacity -> Targetable
+targetable TargetCapacityOne = targetableOne
+targetable TargetCapacityTeam = targetableTeam
+targetable TargetCapacityAll = targetableAll
+targetable TargetCapacityAlmighty = targetableAlmighty
+targetable TargetCapacityOwn = targetableOwn
+targetable TargetCapacityOpponent = targetableOpponent
+targetable TargetCapacitySelf = targetableSelf
+targetable (TargetCapacityMixAnd a) = foldl comb (return True) (map targetable a)
+    where comb = liftA2 (&&)
+targetable (TargetCapacityMixOr a) = foldl comb (return False) (map targetable a)
+    where comb = liftA2 (||)

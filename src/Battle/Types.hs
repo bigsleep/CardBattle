@@ -35,6 +35,7 @@ data PropertySet = PropertySet {
     _propertysetSpeed :: Int,
     _propertysetMagic :: Int
     } deriving (Show, Eq)
+$(makeFields ''PropertySet)
 
 data PropertyFactor = PropertyFactor {
     _propertyfactorMaxHp :: Double,
@@ -44,6 +45,7 @@ data PropertyFactor = PropertyFactor {
     _propertyfactorSpeed :: Double,
     _propertyfactorMagic :: Double
     } deriving (Show, Eq)
+$(makeFields ''PropertyFactor)
     
 data PropertyTag =
     MaxHpTag |
@@ -68,25 +70,28 @@ data TargetCapacity =
     TargetCapacityOwn |
     TargetCapacityOpponent |
     TargetCapacitySelf |
-    TargetCapacityMixAnd TargetCapacity TargetCapacity |
-    TargetCapacityMixOr TargetCapacity TargetCapacity
+    TargetCapacityMixAnd [TargetCapacity] |
+    TargetCapacityMixOr [TargetCapacity]
     deriving (Show, Eq)
 
 data Skill = Skill {
     _skillAction :: Action,
     _skillTarget :: TargetCapacity
     } deriving (Show, Eq)
+$(makeFields ''Skill)
 
 data Card = Card {
     _cardName :: String,
     _cardProperties :: PropertySet,
     _cardSkills :: [Skill]
     } deriving (Show, Eq)
+$(makeFields ''Card)
 
 data CardState = CardState {
     _cardstateHp :: Int,
     _cardstateMp :: Int
 } deriving (Show, Eq)
+$(makeFields ''CardState)
 
 data BattleEffect = BattleEffect {
     _battleeffectAction :: Action,
@@ -94,12 +99,14 @@ data BattleEffect = BattleEffect {
     _battleeffectFactor :: PropertyFactor,
     _battleeffectRemaining :: Maybe Int
     } deriving (Show, Eq)
+$(makeFields ''BattleEffect)
 
 data BattleSetting = BattleSetting {
     _battlesettingFirst :: [Card],
     _battlesettingSecond :: [Card],
     _battlesettingMaxTurn :: Maybe Int
     } deriving (Show, Eq)
+$(makeFields ''BattleSetting)
 
 data BattleState = BattleState {
     _battlestateFirst :: [CardState],
@@ -108,12 +115,14 @@ data BattleState = BattleState {
     _battlestateEffects :: [BattleEffect],
     _battlestateTurn :: Int
     } deriving (Show, Eq)
+$(makeFields ''BattleState)
 
 data PlayerCommand = PlayerCommand {
     _playercommandCardIndex :: Int,
     _playercommandSkillIndex :: Int,
     _playercommandTargetIndex :: Int
     } deriving (Show, Eq)
+$(makeFields ''PlayerCommand)
 
 data BattleCommand = BattleCommand {
     _battlecommandPlayer :: Player,
@@ -121,31 +130,20 @@ data BattleCommand = BattleCommand {
     _battlecommandAction :: Action,
     _battlecommandTarget :: Target
     } deriving (Show, Eq)
-
-data CommandChoice = CommandChoice {
-    _commandchoiceCardIndex :: Int,
-    _commandchoiceActions :: [ActionChoice]
-    } deriving (Show, Eq)
+$(makeFields ''BattleCommand)
 
 data ActionChoice = ActionChoice {
     _actionchoiceSkillIndex :: Int,
     _actionchoiceAction :: Action,
     _actionchoiceTargets :: [Target]
     } deriving (Show, Eq)
-
--- Lenses
-$(makeFields ''PropertySet)
-$(makeFields ''PropertyFactor)
-$(makeFields ''Card)
-$(makeFields ''CardState)
-$(makeFields ''BattleSetting)
-$(makeFields ''BattleState)
-$(makeFields ''PlayerCommand)
-$(makeFields ''BattleEffect)
-$(makeFields ''BattleCommand)
-$(makeFields ''CommandChoice)
 $(makeFields ''ActionChoice)
-$(makeFields ''Skill)
+
+data CommandChoice = CommandChoice {
+    _commandchoiceCardIndex :: Int,
+    _commandchoiceActions :: [ActionChoice]
+    } deriving (Show, Eq)
+$(makeFields ''CommandChoice)
 
 playerAccessor :: (HasFirst a b, HasSecond a b)
                => Player -> Lens' a b
@@ -166,8 +164,6 @@ opponentPlayer FirstPlayer = SecondPlayer
 opponentPlayer SecondPlayer = FirstPlayer
 
 type BattleTurn = ErrorT String (RWS BattleSetting [BattleCommandLog] BattleState)
-
-type Targetable = Reader ((BattleSetting, BattleState, Player, Int), Target) (Bool)
 
 -- log
 data ActionResult =
