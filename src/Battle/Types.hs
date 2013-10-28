@@ -18,7 +18,7 @@ import Control.Monad.Reader(Reader())
 import Control.Monad.Reader.Class(ask)
 import Control.Monad.Trans.RWS(RWS)
 import Control.Monad.Free()
-import Control.Monad.Error(ErrorT, Error, noMsg, strMsg)
+import Control.Monad.Error(ErrorT, Error, noMsg, strMsg, throwError)
 
 data Player = FirstPlayer | SecondPlayer deriving (Show, Eq, Enum)
 
@@ -70,6 +70,8 @@ data TargetCapacity =
     TargetCapacityOwn |
     TargetCapacityOpponent |
     TargetCapacitySelf |
+    TargetCapacityAlive |
+    TargetCapacityDead |
     TargetCapacityMixAnd [TargetCapacity] |
     TargetCapacityMixOr [TargetCapacity]
     deriving (Show, Eq)
@@ -179,3 +181,51 @@ data BattleLog = BattleLog BattleState [BattleCommandLog] [EffectExpiration] der
 
 data BattleCommandLog =
     BattleCommandLog BattleCommand [ActionResult] deriving (Show, Eq)
+
+onTarget :: Player -> Int -> Target -> Bool
+onTarget _ _ TargetAll = True
+onTarget q _ (TargetTeam p) = p == q
+onTarget q y (TargetCard p x) = p == q && x == y
+
+defaultProperties :: Player -> Int -> BattleTurn PropertySet
+defaultProperties p c = do
+    e <- ask
+    case card' e of
+         Nothing -> throwError "in defaultProperties. list index out of range."
+         Just c  -> return (c ^. properties)
+    where card' x = cards x ^? ix c
+          cards x = (x ^. (playerAccessor p))
+
+unitPropertyFactor :: PropertyFactor
+unitPropertyFactor = PropertyFactor 1 1 1 1 1 1
+
+applyPropertyFactor :: PropertySet -> PropertyFactor -> PropertySet
+applyPropertyFactor (PropertySet a1 b1 c1 d1 e1 f1) (PropertyFactor a2 b2 c2 d2 e2 f2) =
+    PropertySet (floor $ fromIntegral a1 * a2)
+                (floor $ fromIntegral b1 * b2)
+                (floor $ fromIntegral c1 * c2)
+                (floor $ fromIntegral d1 * d2)
+                (floor $ fromIntegral e1 * e2)
+                (floor $ fromIntegral f1 * f2)
+
+multPropertyFactor :: PropertyFactor -> PropertyFactor -> PropertyFactor
+multPropertyFactor (PropertyFactor a1 b1 c1 d1 e1 f1) (PropertyFactor a2 b2 c2 d2 e2 f2) =
+    PropertyFactor (a1 * a2) (b1 * b2) (c1 * c2) (d1 * d2) (e1 * e2) (f1 * f2)
+
+subPropertySet :: PropertySet -> PropertySet -> PropertySet
+subPropertySet (PropertySet a b c d e f) (PropertySet a' b' c' d' e' f') = PropertySet (a - a') (b - b') (c - c') (d - d') (e - e') (f - f')
+
+currentProperties :: Player -> Int -> BattleTurn PropertySet
+currentProperties p c = do
+    e <- ask
+    s <- get
+    case (currentProperties' e s p c) of
+         Nothing -> throwError "in currentProperties. list index out of range."
+         Just x  -> return x
+
+currentProperties' :: BattleSetting -> BattleState -> Player -> Int -> Maybe PropertySet
+currentProperties' e s p c = fmap applyEffect card'
+    where card' = (e ^. (playerAccessor p)) ^? ix c
+          applyEffect (Card _ q _) = applyPropertyFactor q eff
+          eff = foldl multPropertyFactor unitPropertyFactor (effectFactors (s ^. oneTurnEffects ++ s ^. effects))
+          effectFactors x = map (^. factor) $ filter ((onTarget p c) . (^. target)) x

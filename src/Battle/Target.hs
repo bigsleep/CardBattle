@@ -10,11 +10,6 @@ import Control.Monad.Reader.Class(ask)
 import Control.Lens hiding (Action)
 import Battle.Types
 
-onTarget :: Player -> Int -> Target -> Bool
-onTarget _ _ TargetAll = True
-onTarget q _ (TargetTeam p) = p == q
-onTarget q y (TargetCard p x) = p == q && x == y
-
 -- ターゲット全列挙
 enumerateAllTargets :: BattleSetting -> [Target]
 enumerateAllTargets e =
@@ -87,6 +82,17 @@ targetableSelf :: Targetable
 targetableSelf = targetableSamePosition `comb` targetableOwn
     where comb = liftA2 (&&)
 
+-- 生死
+targetableAlive, targetableDead :: Targetable
+targetableAlive = ask >>= f
+    where f ((_, s, p, c), _) = case s ^? playerAccessor p . ix c . hp of
+                                     Nothing -> return False
+                                     Just hp' -> return (hp' > 0)
+targetableDead = ask >>= f
+    where f ((_, s, p, c), _) = case s ^? playerAccessor p . ix c . hp of
+                                     Nothing -> return False
+                                     Just hp' -> return (hp' <= 0)
+
 targetable :: TargetCapacity -> Targetable
 targetable TargetCapacityOne = targetableOne
 targetable TargetCapacityTeam = targetableTeam
@@ -95,6 +101,8 @@ targetable TargetCapacityAlmighty = targetableAlmighty
 targetable TargetCapacityOwn = targetableOwn
 targetable TargetCapacityOpponent = targetableOpponent
 targetable TargetCapacitySelf = targetableSelf
+targetable TargetCapacityAlive = targetableAlive
+targetable TargetCapacityDead = targetableDead
 targetable (TargetCapacityMixAnd a) = foldl comb (return True) (map targetable a)
     where comb = liftA2 (&&)
 targetable (TargetCapacityMixOr a) = foldl comb (return False) (map targetable a)
