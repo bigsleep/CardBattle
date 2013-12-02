@@ -3,6 +3,7 @@ module Battle.Battle where
 import Battle.Types
 import Battle.IO
 import Battle.Target
+import qualified Battle.TargetCapacity as TC
 import Battle.Action
 
 import Prelude hiding (lookup)

@@ -14,6 +14,7 @@ import Battle.Mock
 spec :: Spec
 spec = return ()
 
+{-
 prop1 = PropertySet 100 50 40 10 0 0
 skills1 = [Skill Attack (TargetCapacityMixAnd [TargetCapacityOne, TargetCapacityOpponent, TargetCapacityAlive])]
 card1 = Card "testCard" testProperty testSkills
@@ -24,3 +25,4 @@ senario1 = BattleScenario testBattleSetting commands commands
 spec1 :: Spec
 spec1 =
     prop "1ターン両方攻撃"
+-}
