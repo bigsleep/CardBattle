@@ -31,9 +31,9 @@ $(makeFields ''BattleScenario)
 
 type MockIO = Reader BattleScenario
 
-runMockIO :: Free BattleIO a -> MockIO a
+runMockIO :: Free BattleIO a -> MockIO (Either String a)
 
-runMockIO (Pure a) = return a
+runMockIO (Pure a) = return (Right a)
 runMockIO (Free (LoadSetting f)) = ask >>= runMockIO . f . (^. setting)
 runMockIO (Free (InputPlayerCommands t p cs f)) = do
     scenario <- ask
@@ -41,10 +41,10 @@ runMockIO (Free (InputPlayerCommands t p cs f)) = do
     runMockIO (f c)
 runMockIO (Free (OutputBattleState s c)) = runMockIO c
 runMockIO (Free (OutputMessage s c)) = runMockIO c
+runMockIO (Free (OutputError s)) = return . Left $ s
 
-runBattleOnMockIO :: BattleMachine a -> MockIO (Either String a, (BattleSetting, BattleState), [BattleLog])
 runBattleOnMockIO m = do
     e <- ask
     let setting' = e ^. setting
-    let a = runRWST (runErrorT m) () (setting', initializeBattleState setting')
+    let a = runRWST m () (setting', initializeBattleState setting')
     runMockIO a

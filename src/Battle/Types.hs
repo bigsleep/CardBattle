@@ -11,14 +11,14 @@ import Data.Maybe ()
 import Data.Map (Map, lookup, findWithDefault, adjust)
 import Data.Set hiding (map, filter, foldl, insert)
 import Control.Lens hiding (Action)
-import Control.Monad(forM, when)
+import Control.Monad.Error
+import Control.Monad.Error.Class
 import Control.Monad.State()
 import Control.Monad.State.Class(get, put)
 import Control.Monad.Reader(Reader())
 import Control.Monad.Reader.Class(ask)
 import Control.Monad.Trans.RWS(RWS)
 import Control.Monad.Free()
-import Control.Monad.Error(ErrorT, Error, noMsg, strMsg, throwError)
 
 data Player = FirstPlayer | SecondPlayer deriving (Show, Eq, Enum)
 
@@ -187,15 +187,6 @@ onTarget _ _ TargetAll = True
 onTarget q _ (TargetTeam p) = p == q
 onTarget q y (TargetCard p x) = p == q && x == y
 
-defaultProperties :: Player -> Int -> BattleTurn PropertySet
-defaultProperties p c = do
-    e <- ask
-    case card' e of
-         Nothing -> throwError "in defaultProperties. list index out of range."
-         Just c  -> return (c ^. properties)
-    where card' x = cards x ^? ix c
-          cards x = (x ^. (playerAccessor p))
-
 unitPropertyFactor :: PropertyFactor
 unitPropertyFactor = PropertyFactor 1 1 1 1 1 1
 
@@ -214,18 +205,3 @@ multPropertyFactor (PropertyFactor a1 b1 c1 d1 e1 f1) (PropertyFactor a2 b2 c2 d
 
 subPropertySet :: PropertySet -> PropertySet -> PropertySet
 subPropertySet (PropertySet a b c d e f) (PropertySet a' b' c' d' e' f') = PropertySet (a - a') (b - b') (c - c') (d - d') (e - e') (f - f')
-
-currentProperties :: Player -> Int -> BattleTurn PropertySet
-currentProperties p c = do
-    e <- ask
-    s <- get
-    case (currentProperties' e s p c) of
-         Nothing -> throwError "in currentProperties. list index out of range."
-         Just x  -> return x
-
-currentProperties' :: BattleSetting -> BattleState -> Player -> Int -> Maybe PropertySet
-currentProperties' e s p c = fmap applyEffect card'
-    where card' = (e ^. (playerAccessor p)) ^? ix c
-          applyEffect (Card _ q _) = applyPropertyFactor q eff
-          eff = foldl multPropertyFactor unitPropertyFactor (effectFactors (s ^. oneTurnEffects ++ s ^. effects))
-          effectFactors x = map (^. factor) $ filter ((onTarget p c) . (^. target)) x

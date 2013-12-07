@@ -1,6 +1,8 @@
 module Battle.Action
     ( execAction
     , canPerform
+    , currentProperties
+    , currentProperties'
     ) where
 
 import Battle.Types
@@ -10,6 +12,7 @@ import Battle.Target
 import Prelude hiding (lookup)
 import qualified Data.List as L (find)
 import qualified Data.Map as M (adjust, lookup, (!))
+import Control.Monad(forM)
 import Control.Monad.State ()
 import Control.Monad.State.Class (get, put)
 import Control.Monad.Reader.Class (ask)
@@ -123,3 +126,17 @@ consumeMp p c q = do
                          Nothing -> throwError "in consumeMp."
                          Just y -> return y
 
+currentProperties :: Player -> Int -> BattleTurn PropertySet
+currentProperties p c = do
+    e <- ask
+    s <- get
+    case (currentProperties' e s p c) of
+         Nothing -> throwError "in currentProperties. list index out of range."
+         Just x  -> return x
+
+currentProperties' :: BattleSetting -> BattleState -> Player -> Int -> Maybe PropertySet
+currentProperties' e s p c = fmap applyEffect card'
+    where card' = (e ^. (playerAccessor p)) ^? ix c
+          applyEffect (Card _ q _) = applyPropertyFactor q eff
+          eff = foldl multPropertyFactor unitPropertyFactor (effectFactors (s ^. oneTurnEffects ++ s ^. effects))
+          effectFactors x = map (^. factor) $ filter ((onTarget p c) . (^. target)) x

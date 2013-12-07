@@ -57,7 +57,7 @@ toBattleMachine x = do
     (setting', state') <- get
     let (r, s, l) = runRWS (runErrorT x) setting' state'
     case r of
-        Left m -> throwError m
+        Left m -> outputError m
         Right m -> do
             put (setting', s)
             tell [BattleLog s l []]
@@ -81,7 +81,7 @@ toBattleCommand p (PlayerCommand c s t)  = do
     target' <- fromJust $ targets ^? ix t
     return $ BattleCommand p c a target'
     where fromJust (Just a) = return a
-          fromJust Nothing = throwError "in toBattleCommand. fromJust: Nothing"
+          fromJust Nothing = outputError "in toBattleCommand. fromJust: Nothing"
 
 battleTurn :: BattleMachine ()
 battleTurn = do
@@ -121,7 +121,7 @@ cutoffHpMp = do
     let secondCutoff = map cutoff ((state' ^. second) `zip` secondProp)
     put $ (setting', (state' & first .~ firstCutoff) & second .~ secondCutoff)
     where getProperties e s p = case rs of
-                                     Nothing -> throwError "in cutoffHpMp."
+                                     Nothing -> outputError "in cutoffHpMp."
                                      Just x -> return x
             where rs = forM cards (currentProperties' e s p)
                   cards = [0..(cardNum - 1)]

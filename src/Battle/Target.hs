@@ -1,9 +1,20 @@
 {-# LANGUAGE TypeOperators #-}
 module Battle.Target
-    ( enumerateTargets 
+    ( enumerateAllTargets
+    , enumerateTargets 
     , enumerateAsCards
     , Targetable
     , targetable
+    , targetableAlmighty
+    , targetableNothing
+    , targetableSelf
+    , targetableOwn
+    , targetableOpponent
+    , targetableOne
+    , targetableTeam
+    , targetableAll
+    , targetableAlive
+    , targetableDead
     ) where
 
 import Control.Applicative((<*>), (<$>), liftA2)
