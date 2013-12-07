@@ -1,5 +1,10 @@
 {-# LANGUAGE TypeOperators #-}
-module Battle.Target where
+module Battle.Target
+    ( enumerateTargets 
+    , enumerateAsCards
+    , Targetable
+    , targetable
+    ) where
 
 import Control.Applicative((<*>), (<$>), liftA2)
 import Control.Monad(filterM)

@@ -43,3 +43,6 @@ deadOwnOne = TargetCapacityMixAnd [deadOne, TargetCapacityOwn]
 
 deadOwnTeam :: TargetCapacity
 deadOwnTeam = TargetCapacityMixAnd [deadTeam, TargetCapacityOwn]
+
+self :: TargetCapacity
+self = TargetCapacitySelf

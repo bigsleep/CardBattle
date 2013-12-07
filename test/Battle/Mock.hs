@@ -3,7 +3,13 @@
 {-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE TemplateHaskell        #-}
 {-# LANGUAGE TypeSynonymInstances   #-}
-module Battle.Mock where
+module Battle.Mock
+    ( BattleScenario(..)
+    , MockIO
+    , runMockIO
+    , runBattleOnMockIO
+    )
+    where
 
 import Control.Monad.Reader (Reader)
 import Control.Monad.Error (runErrorT)

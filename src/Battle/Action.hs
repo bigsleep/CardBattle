@@ -1,4 +1,7 @@
-module Battle.Action where
+module Battle.Action
+    ( execAction
+    , canPerform
+    ) where
 
 import Battle.Types
 import Battle.IO

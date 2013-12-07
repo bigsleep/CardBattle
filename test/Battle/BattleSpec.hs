@@ -1,28 +1,22 @@
 module Battle.BattleSpec where
 
-import Test.Hspec
-import Test.Hspec.HUnit
-import Test.Hspec.QuickCheck
-import qualified Test.QuickCheck.Property as Prop
-import Test.QuickCheck
-import qualified Test.QuickCheck.Property as Prop
-import Text.Printf
+import qualified Test.Hspec as Hspec
 
 import Battle.Battle
 import Battle.Mock
+import qualified Battle.Types as T
+import qualified Battle.TargetCapacity as TC
+import qualified Battle.Skill as Skill
 
-spec :: Spec
+spec :: Hspec.Spec
 spec = return ()
 
-{-
-prop1 = PropertySet 100 50 40 10 0 0
-skills1 = [Skill Attack (TargetCapacityMixAnd [TargetCapacityOne, TargetCapacityOpponent, TargetCapacityAlive])]
-card1 = Card "testCard" testProperty testSkills
-setting1 = BattleSetting testCard testCard (Just 1)
-commands1 = [PlayerCommand 0 0 0]
-senario1 = BattleScenario testBattleSetting commands commands
+properties = T.PropertySet 100 50 40 10 0 0
+skills = [Skill.attack]
+cards = [T.Card "testCard" properties skills]
+setting = T.BattleSetting cards cards (Just 1)
+commands = [T.PlayerCommand 0 0 0]
+senario = BattleScenario setting [commands] [commands]
 
-spec1 :: Spec
-spec1 =
-    prop "1ターン両方攻撃"
--}
+spec1 :: Hspec.Spec
+spec1 = return ()

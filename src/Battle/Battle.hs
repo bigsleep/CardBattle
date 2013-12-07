@@ -1,10 +1,14 @@
-module Battle.Battle where
+module Battle.Battle
+    ( battle
+    , initializeBattleState
+    ) where
 
 import Battle.Types
 import Battle.IO
 import Battle.Target
-import qualified Battle.TargetCapacity as TC
 import Battle.Action
+import qualified Battle.TargetCapacity as TC
+import qualified Battle.Skill as S
 
 import Prelude hiding (lookup)
 import Data.Functor ()

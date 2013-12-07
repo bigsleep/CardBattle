@@ -1,4 +1,14 @@
-module Battle.IO where
+module Battle.IO
+    ( BattleIO(..)
+    , BattleMachine
+    , createInput
+    , createOutput
+    , loadSetting
+    , inputPlayerCommands
+    , outputBattleState
+    , outputMessage
+    , checkInputCommands
+    ) where
 
 import Data.Map
 import Control.Monad.Error
