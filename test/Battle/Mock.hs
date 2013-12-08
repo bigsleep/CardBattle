@@ -43,8 +43,8 @@ runMockIO (Free (OutputBattleState s c)) = runMockIO c
 runMockIO (Free (OutputMessage s c)) = runMockIO c
 runMockIO (Free (OutputError s)) = return . Left $ s
 
-runBattleOnMockIO m = do
+runBattleOnMockIO = do
     e <- ask
     let setting' = e ^. setting
-    let a = runRWST m () (setting', initializeBattleState setting')
+    let a = runRWST battle () (setting', initializeBattleState setting')
     runMockIO a
