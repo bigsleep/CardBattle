@@ -11,10 +11,7 @@ module Battle.IO
     , checkInputCommands
     ) where
 
-import Control.Monad(forM, forM_)
-import Control.Monad.State(StateT)
-import Control.Monad.State.Class(get, put)
-import Control.Monad.Reader.Class(ask)
+import Control.Monad(forM_)
 import Control.Monad.Trans
 import Control.Monad.Trans.RWS (RWST)
 import Control.Monad.Free(Free(Free, Pure))
@@ -34,7 +31,7 @@ instance Functor BattleIO where
     fmap f (InputPlayerCommands t p cs g) = InputPlayerCommands t p cs (f . g)
     fmap f (OutputBattleState s c) = OutputBattleState s (f c)
     fmap f (OutputMessage s c) = OutputMessage s (f c)
-    fmap f (OutputError s) = OutputError s
+    fmap _ (OutputError s) = OutputError s
 
 type BattleMachine = RWST () [BattleLog] (BattleSetting, BattleState) (Free BattleIO)
 
@@ -75,5 +72,5 @@ checkInputCommands cs ps = do
                                  Just x -> checkTarget (x ^. targets) (b ^. targetIndex)
           checkTarget a b = case a ^? ix b of
                                  Nothing -> outputError "in checkInputCommand. invalid targetIndex."
-                                 Just x -> return ()
+                                 Just _ -> return ()
 

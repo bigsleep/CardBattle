@@ -14,18 +14,15 @@ import Prelude hiding (lookup)
 import Data.Functor ()
 import Data.Maybe ()
 import GHC.Exts(sortWith)
-import qualified Data.Ord as Ord (compare)
-import qualified Data.Set as Set hiding (map, filter, foldl, insert)
-import Control.Applicative(liftA2, (<$>))
 import Control.Lens hiding (Action)
-import Control.Monad (forM, when)
-import Control.Monad.Error
-import Control.Monad.Error.Class
+import Control.Monad (forM, forM_)
+import Control.Monad.Error (runErrorT)
+import Control.Monad.Error.Class (throwError)
 import Control.Monad.State ()
 import Control.Monad.State.Class (get, put)
 import Control.Monad.Reader.Class (ask)
 import Control.Monad.Writer.Class (tell)
-import Control.Monad.Trans.RWS (RWS, runRWS)
+import Control.Monad.Trans.RWS (runRWS)
 import Control.Monad.Free ()
 import Control.Monad.Loops (whileM_)
 
@@ -65,12 +62,10 @@ toBattleMachine x = do
 
 sortBattleCommands :: [BattleCommand] -> BattleTurn [BattleCommand]
 sortBattleCommands cs = do
-    e <- ask
-    s <- get
     speedFactors <- forM cs currentSpeed
     let zipped = zip speedFactors cs
     return $ map snd (sortWith fst zipped)
-    where currentSpeed (BattleCommand p c a _) = currentProperties p c >>= \p -> return (a, p ^. speed)
+    where currentSpeed (BattleCommand p c a _) = currentProperties p c >>= \q -> return (a, q ^. speed)
 
 toBattleCommand :: Player -> PlayerCommand -> BattleMachine BattleCommand
 toBattleCommand p (PlayerCommand c s t)  = do
@@ -156,6 +151,6 @@ enumerateActionChoice p c q s = do
     return $ actionChoices setting' state'
     where executables = filter (canPerform s . (^. action)) (q ^. skills)
           withIndex = zip [0..(length executables - 1)] executables
-          actionChoices e s = map (apply e s) withIndex
-          apply e s (i, (Skill a t)) = ActionChoice i a (enumerateTargets e s p c (targetable t)) 
+          actionChoices e a = map (apply e a) withIndex
+          apply e x (i, (Skill a t)) = ActionChoice i a (enumerateTargets e x p c (targetable t)) 
 

@@ -17,11 +17,9 @@ module Battle.Target
     , targetableDead
     ) where
 
-import Control.Applicative((<*>), (<$>), liftA2)
-import Control.Monad(filterM)
-import Control.Monad.State.Class(get, put)
+import Control.Applicative((<$>), liftA2)
 import Control.Monad.Reader(Reader())
-import Control.Monad.Reader(runReader, withReaderT)
+import Control.Monad.Reader(runReader)
 import Control.Monad.Reader.Class(ask)
 import Control.Lens hiding (Action)
 import Battle.Types
@@ -41,7 +39,7 @@ enumerateTargets e s p c x = filtered
 
 -- 対象をカードとして列挙
 enumerateAsCards :: BattleSetting -> Target -> [(Player, Int)]
-enumerateAsCards e (TargetCard p c) = [(p, c)]
+enumerateAsCards _ (TargetCard p c) = [(p, c)]
 enumerateAsCards e (TargetTeam p) = map (\c -> (p, c)) [0..(length')]
     where length' = length $ e ^. (playerAccessor p)
 enumerateAsCards e TargetAll = (enumerate FirstPlayer) ++ (enumerate SecondPlayer)

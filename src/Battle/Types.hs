@@ -68,20 +68,9 @@ module Battle.Types
     , HasSecond
     ) where
 
-import Prelude hiding (lookup)
-import Data.Functor ()
-import Data.Maybe ()
-import Data.Map (Map, lookup, findWithDefault, adjust)
-import Data.Set hiding (map, filter, foldl, insert)
 import Control.Lens hiding (Action)
-import Control.Monad.Error
-import Control.Monad.Error.Class
-import Control.Monad.State()
-import Control.Monad.State.Class(get, put)
-import Control.Monad.Reader(Reader())
-import Control.Monad.Reader.Class(ask)
-import Control.Monad.Trans.RWS(RWS)
-import Control.Monad.Free()
+import Control.Monad.Error (ErrorT)
+import Control.Monad.Trans.RWS (RWS)
 
 data Player = FirstPlayer | SecondPlayer deriving (Show, Eq, Enum)
 
