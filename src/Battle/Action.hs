@@ -9,8 +9,6 @@ import qualified Battle.Types as T
 import qualified Battle.Target as Target
 
 import Prelude hiding (lookup)
-import qualified Data.List as L (find)
-import qualified Data.Map as M (adjust, lookup, (!))
 import Control.Monad (forM)
 import Control.Monad.State ()
 import Control.Monad.State.Class (get, put)
@@ -23,25 +21,26 @@ import Control.Lens hiding (Action)
 execAction :: T.Player -> Int -> T.Action -> T.Target -> T.BattleTurn ()
 
 -- Attack
-execAction p c T.Attack t = do
+execAction p c (T.Attack f) t = do
     setting' <- ask
     prop <- currentProperties p c
-    let attack' = prop ^. T.attack
+    let attack' = (prop ^. T.attack * f) `div` T.factorDenominator
     let ts = Target.enumerateAsCards setting' t
     logs <- forM ts (attackOne attack')
-    tell [T.BattleCommandLog (T.BattleCommand p c T.Attack t) logs]
+    tell [T.BattleCommandLog (T.BattleCommand p c (T.Attack f) t) logs]
     
 -- Defense
-execAction p c T.Defense t = do
+execAction p c (T.Defense f) t = do
     setting' <- ask
     state' <- get
-    let effect' = T.BattleEffect T.Defense t (T.unitPropertyFactor & T.defense .~ 2) (Just 1)
+    let factor = fromIntegral f / fromIntegral T.factorDenominator
+    let effect' = T.BattleEffect (T.Defense f) t (T.unitPropertyFactor & T.defense .~ factor) (Just 1)
     let ts = Target.enumerateAsCards setting' t
     before <- getProperties ts
     put $ state' & T.oneTurnEffects %~ (effect' :)
     after <- getProperties ts
     let changes = map (\(tc, (x, y)) -> T.PropertyChange tc (y `T.subPropertySet` x)) (ts `zip` (before `zip` after))
-    tell [T.BattleCommandLog (T.BattleCommand p c T.Defense t) changes]
+    tell [T.BattleCommandLog (T.BattleCommand p c (T.Defense f) t) changes]
     where getProperties xs = forM xs (uncurry currentProperties)
 
 -- Heal
@@ -105,9 +104,9 @@ healOne h (tp, tc) = do
 -- canPerform
 canPerform :: T.CardState -> T.Action -> Bool
 
-canPerform _ T.Attack = True
+canPerform _ (T.Attack _) = True
 
-canPerform _ T.Defense = True
+canPerform _ (T.Defense _) = True
 
 canPerform s (T.Heal _ b) = s ^. T.mp >= b
 
