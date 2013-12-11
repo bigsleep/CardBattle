@@ -127,12 +127,10 @@ consumeTurn :: BattleMachine ()
 consumeTurn = do
     (e, s) <- get
     let consumed = map consume (s ^. effects)
-    let filtered = filter activeEffect consumed
-    put $ (e, (s & effects .~ filtered) & turn %~ (+1))
-        where consume e = e & remaining %~ fmap (\x -> x - 1)
-              activeEffect e = case (e ^. remaining) of
-                                    Nothing -> True
-                                    (Just n) -> n > 0
+    let filtered' = filter activeEffect consumed
+    put $ (e, (s & effects .~ filtered') & turn %~ (+1))
+        where consume (e, n) = (e, n - 1)
+              activeEffect e = e ^. _2 > 0
 
 enumerateCommandChoice :: Player -> BattleMachine [CommandChoice]
 enumerateCommandChoice p = do

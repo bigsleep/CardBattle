@@ -53,7 +53,6 @@ module Battle.Types
     , hp
     , mp
     , factor
-    , remaining
     , first
     , second
     , maxTurn
@@ -149,10 +148,8 @@ data CardState = CardState {
 $(makeFields ''CardState)
 
 data BattleEffect = BattleEffect {
-    _battleeffectAction :: Action,
     _battleeffectTarget :: Target,
-    _battleeffectFactor :: PropertyFactor,
-    _battleeffectRemaining :: Maybe Int
+    _battleeffectFactor :: PropertyFactor
     } deriving (Show, Eq)
 $(makeFields ''BattleEffect)
 
@@ -167,7 +164,7 @@ data BattleState = BattleState {
     _battlestateFirst :: [CardState],
     _battlestateSecond :: [CardState],
     _battlestateOneTurnEffects :: [BattleEffect],
-    _battlestateEffects :: [BattleEffect],
+    _battlestateEffects :: [(BattleEffect, Int)],
     _battlestateTurn :: Int
     } deriving (Show, Eq)
 $(makeFields ''BattleState)

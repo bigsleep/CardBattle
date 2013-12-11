@@ -34,7 +34,7 @@ execAction p c (T.Defense f) t = do
     setting' <- ask
     state' <- get
     let factor = fromIntegral f / fromIntegral T.factorDenominator
-    let effect' = T.BattleEffect (T.Defense f) t (T.unitPropertyFactor & T.defense .~ factor) (Just 1)
+    let effect' = T.BattleEffect t (T.unitPropertyFactor & T.defense .~ factor)
     let ts = Target.enumerateAsCards setting' t
     before <- getProperties ts
     put $ state' & T.oneTurnEffects %~ (effect' :)
@@ -56,7 +56,7 @@ execAction p c (T.Buff q f a b) t = do
     setting' <- ask
     state' <- get
     let factor = T.unitPropertyFactor & T.propertyAccessor q .~ f
-    let effect' = T.BattleEffect (T.Buff q f a b) t factor (Just a)
+    let effect' = (T.BattleEffect t factor, a)
     let ts = Target.enumerateAsCards setting' t
     before <- getProperties ts
     put $ state' & T.effects %~ (effect' :)
@@ -136,5 +136,5 @@ currentProperties' :: T.BattleSetting -> T.BattleState -> T.Player -> Int -> May
 currentProperties' e s p c = fmap applyEffect card'
     where card' = (e ^. (T.playerAccessor p)) ^? ix c
           applyEffect (T.Card _ q _) = T.applyPropertyFactor q eff
-          eff = foldl T.multPropertyFactor T.unitPropertyFactor (effectFactors (s ^. T.oneTurnEffects ++ s ^. T.effects))
+          eff = foldl T.multPropertyFactor T.unitPropertyFactor (effectFactors (s ^. T.oneTurnEffects ++ (map fst (s ^. T.effects))))
           effectFactors x = map (^. T.factor) $ filter ((T.onTarget p c) . (^. T.target)) x
