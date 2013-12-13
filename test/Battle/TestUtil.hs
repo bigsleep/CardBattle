@@ -53,8 +53,10 @@ instance Arbitrary BattleEffect where
         t <- arbitrary
         p <- arbitrary
         f <- arbitrary
-        let factor' = unitPropertyFactor & propertyAccessor p %~ (+f)
+        let factor' = unitFactor & propertyAccessor p %~ (+f)
         return $ BattleEffect t factor'
+        where unitFactor = PropertySet u u u u u u
+              u = factorDenominator
 
 instance Arbitrary PropertyTag where
     arbitrary = elements $ enumFrom MaxHpTag

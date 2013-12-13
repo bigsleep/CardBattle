@@ -28,7 +28,6 @@ module Battle.Types
     , propertyAccessor
     , opponentPlayer
     , onTarget
-    , unitPropertyFactor
     , applyPropertyFactor
     , multPropertyFactor
     , subPropertySet
@@ -225,9 +224,6 @@ onTarget :: Player -> Int -> Target -> Bool
 onTarget _ _ TargetAll = True
 onTarget q _ (TargetTeam p) = p == q
 onTarget q y (TargetCard p x) = p == q && x == y
-
-unitPropertyFactor :: PropertySet
-unitPropertyFactor = PropertySet 1 1 1 1 1 1
 
 applyPropertyFactor :: PropertySet -> PropertySet -> PropertySet
 applyPropertyFactor (PropertySet a1 b1 c1 d1 e1 f1) (PropertySet a2 b2 c2 d2 e2 f2) =

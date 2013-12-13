@@ -138,6 +138,5 @@ currentProperties p c = do
 currentProperties' :: T.BattleSetting -> T.BattleState -> T.Player -> Int -> Maybe T.PropertySet
 currentProperties' e s p c = fmap applyEffect card'
     where card' = (e ^. (T.playerAccessor p)) ^? ix c
-          applyEffect (T.Card _ q _) = T.multPropertyFactor q eff
-          eff = foldl T.applyPropertyFactor T.unitPropertyFactor (effectFactors (s ^. T.oneTurnEffects ++ (map fst (s ^. T.effects))))
+          applyEffect (T.Card _ q _) = foldl T.applyPropertyFactor q (effectFactors (s ^. T.oneTurnEffects ++ (map fst (s ^. T.effects))))
           effectFactors x = map (^. T.factor) $ filter ((T.onTarget p c) . (^. T.target)) x

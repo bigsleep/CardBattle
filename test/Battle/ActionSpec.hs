@@ -43,13 +43,26 @@ spec = do
         return $ runCurrentPropertiesTest setting' state' p c expected message
 
 
+    prop "currentProperties 攻撃力1/2*1/2" $ \setting' p -> do
+        c <- chooseTargetCard setting' p
+        let u = factorDenominator
+        let unitFactor = PropertySet u u u u u u
+        let factor = unitFactor & attack .~ (u `div` 2)
+        let halfAttack = (BattleEffect TargetAll factor, 1)
+        let effects' = [halfAttack, halfAttack]
+        let state' = (initializeBattleState setting') & effects .~ effects'
+        let before = (setting' ^. (playerAccessor p)) !! c ^. properties
+        let expected = before & attack %~ (`div` 4)
+        let message r = "result: " ++ show r ++ "\nexpected: " ++ show expected
+        return $ runCurrentPropertiesTest setting' state' p c expected message
+
+
     prop "currentProperties エフェクトランダム" $ \setting' effects' p -> do
         c <- chooseTargetCard setting' p
         let state' = (initializeBattleState setting') & effects .~ effects'
         let es = map (^. _1 . factor) $ filter ((onTarget p c) . (^. _1 . target)) effects'
-        let f = foldl applyPropertyFactor unitPropertyFactor es
         let before = (setting' ^. (playerAccessor p)) !! c ^. properties
-        let expected = before `multPropertyFactor` f
+        let expected = foldl applyPropertyFactor before es
         let message r = "result: " ++ show r ++ "\nexpected: " ++ show expected
         return $ runCurrentPropertiesTest setting' state' p c expected message
 
