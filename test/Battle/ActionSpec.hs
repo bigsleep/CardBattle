@@ -5,7 +5,6 @@ import Test.Hspec.HUnit
 import Test.Hspec.QuickCheck
 import qualified Test.QuickCheck.Property as Prop
 import Test.QuickCheck
-import qualified Test.QuickCheck.Property as Prop
 import Control.Monad.RWS
 import Control.Monad.Error
 import Control.Lens hiding (Action)
@@ -25,38 +24,34 @@ spec = do
     prop "currentProperties エフェクトなし" $ \e p -> do
         c <- chooseTargetCard e p
         let s = initializeBattleState e
-        let test = runCurrentPropertiesTest e s p c
         let expected = ((e ^. (playerAccessor p)) !! c ^. properties)
-        case test of
-             Left s -> return False
-             Right result -> return $ result == expected
+        let message r = "result: " ++ show r ++ "\nexpected: " ++ show expected
+        return $ runCurrentPropertiesTest e s p c expected message
 
 
     prop "currentProperties 攻撃力2倍2倍" $ \setting' p -> do
         c <- chooseTargetCard setting' p
-        let factor = unitPropertyFactor & attack .~ 2
+        let u = factorDenominator
+        let unitFactor = PropertySet u u u u u u
+        let factor = unitFactor & attack .~ (2 * u)
         let doubleAttack = (BattleEffect TargetAll factor, 1)
         let effects' = [doubleAttack, doubleAttack]
         let state' = (initializeBattleState setting') & effects .~ effects'
-        let test = runCurrentPropertiesTest setting' state' p c
         let before = (setting' ^. (playerAccessor p)) !! c ^. properties
-        let expected = before `applyPropertyFactor` (factor `multPropertyFactor` factor)
-        case test of
-             Left s -> return False
-             Right result -> return $ result == expected
+        let expected = before `applyPropertyFactor` (factor `applyPropertyFactor` factor)
+        let message r = "result: " ++ show r ++ "\nexpected: " ++ show expected
+        return $ runCurrentPropertiesTest setting' state' p c expected message
 
 
     prop "currentProperties エフェクトランダム" $ \setting' effects' p -> do
         c <- chooseTargetCard setting' p
         let state' = (initializeBattleState setting') & effects .~ effects'
-        let test = runCurrentPropertiesTest setting' state' p c
         let es = map (^. _1 . factor) $ filter ((onTarget p c) . (^. _1 . target)) effects'
-        let f = foldl multPropertyFactor unitPropertyFactor es
+        let f = foldl applyPropertyFactor unitPropertyFactor es
         let before = (setting' ^. (playerAccessor p)) !! c ^. properties
-        let expected = before `applyPropertyFactor` f
-        case test of
-             Left s -> return False
-             Right result -> return $ result == expected
+        let expected = before `multPropertyFactor` f
+        let message r = "result: " ++ show r ++ "\nexpected: " ++ show expected
+        return $ runCurrentPropertiesTest setting' state' p c expected message
 
 
     prop "currentProperties エフェクト対象外" $ \setting' effect' p -> do
@@ -64,11 +59,9 @@ spec = do
         tc <- chooseTargetCard setting' (opponentPlayer p)
         let target' = TargetCard (opponentPlayer p) tc
         let state' = (initializeBattleState setting') & effects .~ [(effect' & _1 . target .~ target')]
-        let test = runCurrentPropertiesTest setting' state' p c
         let expected = ((setting' ^. (playerAccessor p)) !! c ^. properties)
-        case test of
-             Left s -> return False
-             Right result -> return $ result == expected
+        let message r = "result: " ++ show r ++ "\nexpected: " ++ show expected
+        return $ runCurrentPropertiesTest setting' state' p c expected message
 
     
     prop "execAction Attack 単体攻撃" $ \setting' p -> do
@@ -104,19 +97,21 @@ spec = do
         let properties' = ((setting' ^. (playerAccessor p)) !! c ^. properties)
         let defense' = properties' ^. defense
         let (Right afterState) = runExecActionTest setting' state' p c (Defense 200) target'
-        let (Right afterProp) = runCurrentPropertiesTest setting' afterState p c
         let expected = properties' & defense %~ (+ defense')
-        let message = printf
-                        "defense: %d\nbefore: %s\nexpected: %s\nresult: %s\n"
-                        defense' (show properties') (show expected) (show afterProp)
-        if afterProp == expected
-            then return Prop.succeeded
-            else return Prop.failed {Prop.reason = message}
+        let message result = printf
+                        "defense: %d\nbefore: %s\nexpected: %s\nafterState: %s\nresultProperty: %s"
+                        defense' (show properties') (show expected) (show afterState) (show result)
+        return $ runCurrentPropertiesTest setting' afterState p c expected message
 
-runCurrentPropertiesTest :: BattleSetting -> BattleState -> Player -> Int -> Either String PropertySet
-runCurrentPropertiesTest e s p c = result
+
+runCurrentPropertiesTest :: BattleSetting -> BattleState -> Player -> Int -> PropertySet -> (PropertySet -> String) -> Prop.Result
+runCurrentPropertiesTest e s p c expected message = mkResult r
     where m = currentProperties p c
-          (result, _, _) = runRWS (runErrorT m) e s
+          (r, _, _) = runRWS (runErrorT m) e s
+          mkResult (Left s) = Prop.failed {Prop.reason = s}
+          mkResult (Right result) = if expected == result
+                                       then Prop.succeeded
+                                       else Prop.failed {Prop.reason = message result}
 
 runExecActionTest :: BattleSetting -> BattleState -> Player -> Int -> Action -> Target -> Either String BattleState
 runExecActionTest e s p c a t = result

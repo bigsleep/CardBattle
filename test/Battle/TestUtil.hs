@@ -1,5 +1,7 @@
 {-# LANGUAGE FlexibleInstances #-}
-module Battle.TestUtil where
+module Battle.TestUtil
+    ( chooseTargetCard
+    ) where
 
 import qualified Data.List as L (replicate)
 import Test.QuickCheck
@@ -8,8 +10,6 @@ import Control.Applicative
 import Control.Lens hiding (Action, elements)
 
 import Battle.Types
-import Battle.Action
-import Battle.Battle
 
 -- Arbitrary
 instance Arbitrary Player where
@@ -26,17 +26,6 @@ instance Arbitrary PropertySet where
         speed' <- choose (1, 20)
         magic' <- choose (1, 20)
         return $ PropertySet hp' mp' attack' defense' speed' magic'
-
-instance Arbitrary PropertyFactor where
-    arbitrary = do
-        let gen = choose (0.1, 10)
-        hp' <- gen
-        mp' <- gen
-        attack' <- gen
-        defense' <- gen
-        speed' <- gen
-        magic' <- gen
-        return $ PropertyFactor hp' mp' attack' defense' speed' magic'
 
 instance Arbitrary Card where
     arbitrary = do

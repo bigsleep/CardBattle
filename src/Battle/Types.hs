@@ -8,7 +8,6 @@ module Battle.Types
     ( Player(..)
     , Target(..)
     , PropertySet(..)
-    , PropertyFactor(..)
     , PropertyTag(..)
     , Action(..)
     , TargetCapacity(..)
@@ -89,16 +88,6 @@ data PropertySet = PropertySet {
     } deriving (Show, Eq)
 $(makeFields ''PropertySet)
 
-data PropertyFactor = PropertyFactor {
-    _propertyfactorMaxHp :: Double,
-    _propertyfactorMaxMp :: Double,
-    _propertyfactorAttack :: Double,
-    _propertyfactorDefense :: Double,
-    _propertyfactorSpeed :: Double,
-    _propertyfactorMagic :: Double
-    } deriving (Show, Eq)
-$(makeFields ''PropertyFactor)
-    
 data PropertyTag =
     MaxHpTag |
     MaxMpTag |
@@ -111,7 +100,7 @@ data Action =
     Defense Int |
     Attack Int |
     Heal Int Int |
-    Buff PropertyTag Double Int Int
+    Buff PropertyTag Int Int Int
     deriving (Show, Eq, Ord)
 
 data TargetCapacity =
@@ -149,7 +138,7 @@ $(makeFields ''CardState)
 
 data BattleEffect = BattleEffect {
     _battleeffectTarget :: Target,
-    _battleeffectFactor :: PropertyFactor
+    _battleeffectFactor :: PropertySet
     } deriving (Show, Eq)
 $(makeFields ''BattleEffect)
 
@@ -237,21 +226,21 @@ onTarget _ _ TargetAll = True
 onTarget q _ (TargetTeam p) = p == q
 onTarget q y (TargetCard p x) = p == q && x == y
 
-unitPropertyFactor :: PropertyFactor
-unitPropertyFactor = PropertyFactor 1 1 1 1 1 1
+unitPropertyFactor :: PropertySet
+unitPropertyFactor = PropertySet 1 1 1 1 1 1
 
-applyPropertyFactor :: PropertySet -> PropertyFactor -> PropertySet
-applyPropertyFactor (PropertySet a1 b1 c1 d1 e1 f1) (PropertyFactor a2 b2 c2 d2 e2 f2) =
-    PropertySet (floor $ fromIntegral a1 * a2)
-                (floor $ fromIntegral b1 * b2)
-                (floor $ fromIntegral c1 * c2)
-                (floor $ fromIntegral d1 * d2)
-                (floor $ fromIntegral e1 * e2)
-                (floor $ fromIntegral f1 * f2)
+applyPropertyFactor :: PropertySet -> PropertySet -> PropertySet
+applyPropertyFactor (PropertySet a1 b1 c1 d1 e1 f1) (PropertySet a2 b2 c2 d2 e2 f2) =
+    PropertySet (a1 * a2 `div` factorDenominator)
+                (b1 * b2 `div` factorDenominator)
+                (c1 * c2 `div` factorDenominator)
+                (d1 * d2 `div` factorDenominator)
+                (e1 * e2 `div` factorDenominator)
+                (f1 * f2 `div` factorDenominator)
 
-multPropertyFactor :: PropertyFactor -> PropertyFactor -> PropertyFactor
-multPropertyFactor (PropertyFactor a1 b1 c1 d1 e1 f1) (PropertyFactor a2 b2 c2 d2 e2 f2) =
-    PropertyFactor (a1 * a2) (b1 * b2) (c1 * c2) (d1 * d2) (e1 * e2) (f1 * f2)
+multPropertyFactor :: PropertySet -> PropertySet -> PropertySet
+multPropertyFactor (PropertySet a1 b1 c1 d1 e1 f1) (PropertySet a2 b2 c2 d2 e2 f2) =
+    PropertySet (a1 * a2) (b1 * b2) (c1 * c2) (d1 * d2) (e1 * e2) (f1 * f2)
 
 subPropertySet :: PropertySet -> PropertySet -> PropertySet
 subPropertySet (PropertySet a b c d e f) (PropertySet a' b' c' d' e' f') = PropertySet (a - a') (b - b') (c - c') (d - d') (e - e') (f - f')

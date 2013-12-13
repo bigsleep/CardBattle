@@ -33,15 +33,16 @@ execAction p c (T.Attack f) t = do
 execAction p c (T.Defense f) t = do
     setting' <- ask
     state' <- get
-    let factor = fromIntegral f / fromIntegral T.factorDenominator
-    let effect' = T.BattleEffect t (T.unitPropertyFactor & T.defense .~ factor)
+    let effect' = T.BattleEffect t (unitFactor & T.defense .~ f)
     let ts = Target.enumerateAsCards setting' t
     before <- getProperties ts
     put $ state' & T.oneTurnEffects %~ (effect' :)
     after <- getProperties ts
     let changes = map (\(tc, (x, y)) -> T.PropertyChange tc (y `T.subPropertySet` x)) (ts `zip` (before `zip` after))
     tell [T.BattleCommandLog (T.BattleCommand p c (T.Defense f) t) changes]
-    where getProperties xs = forM xs (uncurry currentProperties)
+    where unitFactor = T.PropertySet a a a a a a
+          a = T.factorDenominator
+          getProperties xs = forM xs (uncurry currentProperties)
 
 -- Heal
 execAction p c (T.Heal a b) t = do
@@ -52,10 +53,10 @@ execAction p c (T.Heal a b) t = do
     tell [T.BattleCommandLog (T.BattleCommand p c (T.Heal a b) t) (l : logs)]
 
 -- Buff
-execAction p c (T.Buff q f a b) t = do
+execAction p c (T.Buff q f _ b) t = do
     setting' <- ask
     state' <- get
-    let factor = T.unitPropertyFactor & T.propertyAccessor q .~ f
+    let factor = unitFactor & T.propertyAccessor q .~ f
     let effect' = (T.BattleEffect t factor, a)
     let ts = Target.enumerateAsCards setting' t
     before <- getProperties ts
@@ -64,7 +65,9 @@ execAction p c (T.Buff q f a b) t = do
     l <- consumeMp p c b
     let changes = map (\(tc, (x, y)) -> T.PropertyChange tc (y `T.subPropertySet` x)) (ts `zip` (before `zip` after))
     tell [T.BattleCommandLog (T.BattleCommand p c (T.Buff q f a b) t) (l : changes)]
-    where getProperties xs = forM xs (uncurry currentProperties)
+    where unitFactor = T.PropertySet a a a a a a
+          a = T.factorDenominator
+          getProperties xs = forM xs (uncurry currentProperties)
 
 
 -- 単体攻撃
@@ -135,6 +138,6 @@ currentProperties p c = do
 currentProperties' :: T.BattleSetting -> T.BattleState -> T.Player -> Int -> Maybe T.PropertySet
 currentProperties' e s p c = fmap applyEffect card'
     where card' = (e ^. (T.playerAccessor p)) ^? ix c
-          applyEffect (T.Card _ q _) = T.applyPropertyFactor q eff
-          eff = foldl T.multPropertyFactor T.unitPropertyFactor (effectFactors (s ^. T.oneTurnEffects ++ (map fst (s ^. T.effects))))
+          applyEffect (T.Card _ q _) = T.multPropertyFactor q eff
+          eff = foldl T.applyPropertyFactor T.unitPropertyFactor (effectFactors (s ^. T.oneTurnEffects ++ (map fst (s ^. T.effects))))
           effectFactors x = map (^. T.factor) $ filter ((T.onTarget p c) . (^. T.target)) x
