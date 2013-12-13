@@ -107,13 +107,13 @@ healOne h (tp, tc) = do
 -- canPerform
 canPerform :: T.CardState -> T.Action -> Bool
 
-canPerform _ (T.Attack _) = True
+canPerform s (T.Attack _) = s ^. T.hp > 0
 
-canPerform _ (T.Defense _) = True
+canPerform s (T.Defense _) = s ^. T.hp > 0
 
-canPerform s (T.Heal _ b) = s ^. T.mp >= b
+canPerform s (T.Heal _ b) = (s ^. T.hp > 0) && (s ^. T.mp >= b)
 
-canPerform s (T.Buff _ _ _ b) = s ^. T.mp >= b
+canPerform s (T.Buff _ _ _ b) = (s ^. T.hp > 0) && (s ^. T.mp >= b)
 
 consumeMp :: T.Player -> Int -> Int -> T.BattleTurn T.ActionResult
 consumeMp p c q = do
