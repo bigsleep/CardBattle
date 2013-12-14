@@ -136,7 +136,7 @@ data CardState = CardState {
 $(makeFields ''CardState)
 
 data BattleEffect = BattleEffect {
-    _battleeffectTarget :: Target,
+    _battleeffectTarget :: (Player, Int),
     _battleeffectFactor :: PropertySet
     } deriving (Show, Eq)
 $(makeFields ''BattleEffect)
@@ -210,6 +210,8 @@ data ActionResult =
     Consume (Player, Int) CardState |
     StateChange (Player, Int) CardState |
     PropertyChange (Player, Int) PropertySet |
+    Death (Player, Int) |
+    FailureBecauseDeath |
     Underqualified |
     ActionFailure deriving (Show, Eq)
 

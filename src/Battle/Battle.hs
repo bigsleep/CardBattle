@@ -1,3 +1,4 @@
+{- #LANGUAGE OverlappingInstances #-}
 module Battle.Battle
     ( battle
     , initializeBattleState
@@ -11,7 +12,7 @@ import Battle.Action
 import Prelude hiding (lookup)
 import GHC.Exts(sortWith)
 import Control.Lens ((^.), (.~), (&), (^?), (%~), ix, _2)
-import Control.Monad (forM, forM_, liftM)
+import Control.Monad (forM, forM_, filterM, liftM)
 import Control.Monad.Error (runErrorT)
 import Control.Monad.Error.Class (throwError)
 import Control.Monad.State.Class (get, put)
@@ -93,13 +94,15 @@ execTurn cs = do
 execCommand :: T.BattleCommand -> T.BattleTurn ()
 execCommand (T.BattleCommand p c a t) = do
     state' <- get
-    card' <- getCardState state'
-    if canPerform card' a
-        then execAction p c a t
-        else tell [T.BattleCommandLog (T.BattleCommand p c a t) [T.Underqualified]]
-    where getCardState s = case s ^? T.playerAccessor p . ix c of
-                                Nothing -> throwError "in execCommand."
-                                Just x -> return x
+    card' <- g $ getCardState state' (p, c)
+    exec (alive card') (canPerform card' a)
+    where g Nothing = throwError "in execCommand"
+          g (Just x) = return x
+          alive s = s ^. T.hp > 0
+          exec :: Bool -> Bool -> T.BattleTurn ()
+          exec False _ = tell [T.BattleCommandLog (T.BattleCommand p c a t) [T.FailureBecauseDeath]]
+          exec True False = tell [T.BattleCommandLog (T.BattleCommand p c a t) [T.Underqualified]]
+          exec True True = execAction p c a t
 
 cutoffHpMp :: BattleMachine ()
 cutoffHpMp = do
@@ -121,10 +124,9 @@ consumeTurn :: BattleMachine ()
 consumeTurn = do
     (e, s) <- get
     let consumed = map consume (s ^. T.effects)
-    let filtered' = filter activeEffect consumed
-    put (e, (s & T.effects .~ filtered') & T.turn %~ (+1))
-        where consume (e, n) = (e, n - 1)
-              activeEffect e = e ^. _2 > 0
+    filtered <- filterM activeEffect consumed
+    put (e, (s & T.effects .~ filtered) & T.turn %~ (+1))
+        where consume (x, n) = (x, n - 1)
 
 enumerateCommandChoice :: T.Player -> BattleMachine [T.CommandChoice]
 enumerateCommandChoice p = do
@@ -146,3 +148,13 @@ enumerateActionChoice p c q s = do
           actionChoices e a = map (apply e a) withIndex
           apply e x (i, T.Skill a t) = T.ActionChoice i a (enumerateTargets e x p c (targetable t)) 
 
+activeEffect :: (T.BattleEffect, Int) -> BattleMachine Bool
+activeEffect (effect, remaining) =
+    if remaining >= 0
+        then return False
+        else get >>= \(_, s) -> g $ isCardAlive s t
+    where t = effect ^. T.target
+          g Nothing = outputError "in activeEffect"
+          g (Just x) = return x
+        
+    

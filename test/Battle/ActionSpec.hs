@@ -31,7 +31,7 @@ spec = do
         let u = factorDenominator
         let unitFactor = PropertySet u u u u u u
         let factor' = unitFactor & attack .~ (2 * u)
-        let doubleAttack = (BattleEffect TargetAll factor', 1)
+        let doubleAttack = (BattleEffect (p, c) factor', 1)
         let effects' = [doubleAttack, doubleAttack]
         let state' = (initializeBattleState setting') & effects .~ effects'
         let before = (setting' ^. (playerAccessor p)) !! c ^. properties
@@ -45,7 +45,7 @@ spec = do
         let u = factorDenominator
         let unitFactor = PropertySet u u u u u u
         let factor' = unitFactor & attack .~ (u `div` 2)
-        let halfAttack = (BattleEffect TargetAll factor', 1)
+        let halfAttack = (BattleEffect (p, c) factor', 1)
         let effects' = [halfAttack, halfAttack]
         let state' = (initializeBattleState setting') & effects .~ effects'
         let before = (setting' ^. (playerAccessor p)) !! c ^. properties
@@ -57,7 +57,8 @@ spec = do
     prop "currentProperties エフェクトランダム" $ \setting' effects' p -> do
         c <- chooseTargetCard setting' p
         let state' = (initializeBattleState setting') & effects .~ effects'
-        let es = map (^. _1 . factor) $ filter ((onTarget p c) . (^. _1 . target)) effects'
+        let targeted q d e = (q, d) == e ^. _1 . target
+        let es = map (^. _1 . factor) $ filter (targeted p c) effects'
         let before = (setting' ^. (playerAccessor p)) !! c ^. properties
         let expected = foldl applyPropertyFactor before es
         let message r = "result: " ++ show r ++ "\nexpected: " ++ show expected
@@ -67,7 +68,7 @@ spec = do
     prop "currentProperties エフェクト対象外" $ \setting' effect' p -> do
         c <- chooseTargetCard setting' p
         tc <- chooseTargetCard setting' (opponentPlayer p)
-        let target' = TargetCard (opponentPlayer p) tc
+        let target' = (opponentPlayer p, tc)
         let state' = (initializeBattleState setting') & effects .~ [(effect' & _1 . target .~ target')]
         let expected = ((setting' ^. (playerAccessor p)) !! c ^. properties)
         let message r = "result: " ++ show r ++ "\nexpected: " ++ show expected

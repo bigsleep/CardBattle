@@ -49,11 +49,12 @@ instance Arbitrary Target where
 
 instance Arbitrary BattleEffect where
     arbitrary = do
-        t <- arbitrary
+        tp <- arbitrary
+        tc <- choose (0, 10)
         p <- arbitrary
         f <- arbitrary
         let factor' = unitFactor & propertyAccessor p %~ (+f)
-        return $ BattleEffect t factor'
+        return $ BattleEffect (tp, tc) factor'
         where unitFactor = PropertySet u u u u u u
               u = factorDenominator
 
