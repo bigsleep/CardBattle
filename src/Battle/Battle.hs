@@ -1,4 +1,3 @@
-{- #LANGUAGE OverlappingInstances #-}
 module Battle.Battle
     ( battle
     , initializeBattleState
@@ -156,5 +155,3 @@ activeEffect (effect, remaining) =
     where t = effect ^. T.target
           g Nothing = outputError "in activeEffect"
           g (Just x) = return x
-        
-    
