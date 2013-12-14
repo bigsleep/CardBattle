@@ -3,7 +3,6 @@ module Battle.TestUtil
     ( chooseTargetCard
     ) where
 
-import qualified Data.List as L (replicate)
 import Test.QuickCheck
 import Control.Monad(replicateM)
 import Control.Applicative

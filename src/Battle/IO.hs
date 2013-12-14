@@ -11,18 +11,18 @@ module Battle.IO
     , checkInputCommands
     ) where
 
-import Control.Monad(forM_)
-import Control.Monad.Trans
+import Control.Monad(forM_, when)
+import Control.Monad.Trans (lift)
 import Control.Monad.Trans.RWS (RWST)
 import Control.Monad.Free(Free(Free, Pure))
 import Control.Lens hiding (Action)
 
-import Battle.Types
+import qualified Battle.Types as T
 
 data BattleIO a =
-    LoadSetting (BattleSetting -> a) |
-    InputPlayerCommands Int Player [CommandChoice] ([PlayerCommand] -> a) |
-    OutputBattleState BattleState a |
+    LoadSetting (T.BattleSetting -> a) |
+    InputPlayerCommands Int T.Player [T.CommandChoice] ([T.PlayerCommand] -> a) |
+    OutputBattleState T.BattleState a |
     OutputMessage String a |
     OutputError String
 
@@ -33,7 +33,7 @@ instance Functor BattleIO where
     fmap f (OutputMessage s c) = OutputMessage s (f c)
     fmap _ (OutputError s) = OutputError s
 
-type BattleMachine = RWST () [BattleLog] (BattleSetting, BattleState) (Free BattleIO)
+type BattleMachine = RWST () [T.BattleLog] (T.BattleSetting, T.BattleState) (Free BattleIO)
 
 createInput :: ((a -> Free BattleIO a) -> BattleIO (Free BattleIO a)) -> BattleMachine a
 createInput f = lift . Free . f $ \x -> Pure x
@@ -41,13 +41,13 @@ createInput f = lift . Free . f $ \x -> Pure x
 createOutput :: (a -> Free BattleIO () -> BattleIO (Free BattleIO ())) -> a -> BattleMachine ()
 createOutput f x = lift . Free $ f x (Pure ())
 
-loadSetting :: BattleMachine BattleSetting
+loadSetting :: BattleMachine T.BattleSetting
 loadSetting = createInput LoadSetting
 
-inputPlayerCommands :: Int -> Player -> [CommandChoice] -> BattleMachine [PlayerCommand]
+inputPlayerCommands :: Int -> T.Player -> [T.CommandChoice] -> BattleMachine [T.PlayerCommand]
 inputPlayerCommands t p cs = createInput (InputPlayerCommands t p cs) >>= checkInputCommands cs
 
-outputBattleState :: BattleState -> BattleMachine ()
+outputBattleState :: T.BattleState -> BattleMachine ()
 outputBattleState = createOutput OutputBattleState
 
 outputMessage :: String -> BattleMachine ()
@@ -56,20 +56,18 @@ outputMessage = createOutput OutputMessage
 outputError :: String -> BattleMachine a
 outputError = lift . Free . OutputError
 
-checkInputCommands :: [CommandChoice] -> [PlayerCommand] -> BattleMachine [PlayerCommand]
+checkInputCommands :: [T.CommandChoice] -> [T.PlayerCommand] -> BattleMachine [T.PlayerCommand]
 checkInputCommands cs ps = do
     checkLength
     forM_ (zip cs ps) check
     return ps
-    where checkLength = if length cs /= length ps
-                           then outputError "in checkInputCommand. invalid size."
-                           else return ()
-          check (a, b) = if a ^. cardIndex /= b ^. cardIndex
+    where checkLength = when (length cs /= length ps) (outputError "in checkInputCommand. invalid size.")
+          check (a, b) = if a ^. T.cardIndex /= b ^. T.cardIndex
                             then outputError "in checkInputCommand. invalid cardIndex."
                             else checkAction a b
-          checkAction a b = case a ^? actions . ix (b ^. skillIndex) of
+          checkAction a b = case a ^? T.actions . ix (b ^. T.skillIndex) of
                                  Nothing -> outputError "in checkInputCommand. invalid skillIndex."
-                                 Just x -> checkTarget (x ^. targets) (b ^. targetIndex)
+                                 Just x -> checkTarget (x ^. T.targets) (b ^. T.targetIndex)
           checkTarget a b = case a ^? ix b of
                                  Nothing -> outputError "in checkInputCommand. invalid targetIndex."
                                  Just _ -> return ()

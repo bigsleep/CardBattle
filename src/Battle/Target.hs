@@ -18,35 +18,34 @@ module Battle.Target
     ) where
 
 import Control.Applicative((<$>), liftA2)
-import Control.Monad.Reader(Reader())
-import Control.Monad.Reader(runReader)
+import Control.Monad.Reader(Reader, runReader)
 import Control.Monad.Reader.Class(ask)
-import Control.Lens hiding (Action)
+import Control.Lens ((^.), (^?), ix)
 import Battle.Types
 
 -- ターゲット全列挙
 enumerateAllTargets :: BattleSetting -> [Target]
 enumerateAllTargets e =
     f ++ s ++ [TargetTeam FirstPlayer, TargetTeam SecondPlayer, TargetAll]
-    where f = map (\c -> TargetCard FirstPlayer c) [0..(length (e ^. first) - 1)]
-          s = map (\c -> TargetCard SecondPlayer c) [0..(length (e ^. second) - 1)]
+    where f = map (TargetCard FirstPlayer) [0..(length (e ^. first) - 1)]
+          s = map (TargetCard SecondPlayer) [0..(length (e ^. second) - 1)]
 
 -- ターゲット列挙
 enumerateTargets :: BattleSetting -> BattleState -> Player -> Int -> Targetable -> [Target]
 enumerateTargets e s p c x = filtered
         where filtered = filter f (enumerateAllTargets e)
-              f = (curry (runReader x)) (e, s, p, c)
+              f = curry (runReader x) (e, s, p, c)
 
 -- 対象をカードとして列挙
 enumerateAsCards :: BattleSetting -> Target -> [(Player, Int)]
 enumerateAsCards _ (TargetCard p c) = [(p, c)]
-enumerateAsCards e (TargetTeam p) = map (\c -> (p, c)) [0..(length')]
-    where length' = length $ e ^. (playerAccessor p)
-enumerateAsCards e TargetAll = (enumerate FirstPlayer) ++ (enumerate SecondPlayer)
+enumerateAsCards e (TargetTeam p) = map (\c -> (p, c)) [0..length']
+    where length' = length $ e ^. playerAccessor p
+enumerateAsCards e TargetAll = enumerate FirstPlayer ++ enumerate SecondPlayer
     where enumerate p = enumerateAsCards e (TargetTeam p)
 
 -- targetable
-type Targetable = Reader ((BattleSetting, BattleState, Player, Int), Target) (Bool)
+type Targetable = Reader ((BattleSetting, BattleState, Player, Int), Target) Bool
 
 -- 全て
 targetableAlmighty :: Targetable
@@ -59,14 +58,14 @@ targetableNothing = return False
 -- カード位置同じ
 targetableSamePosition :: Targetable
 targetableSamePosition = ask >>= f
-    where f ((_, _, _, c), (TargetCard _ d)) = return (c == d)
+    where f ((_, _, _, c), TargetCard _ d) = return (c == d)
           f _ = return False
 
 -- 敵
 targetableOpponent :: Targetable
 targetableOpponent = ask >>= f
-    where f ((_, _, p, _), (TargetCard q _)) = return (p /= q)
-          f ((_, _, p, _), (TargetTeam q)) = return (p /= q)
+    where f ((_, _, p, _), TargetCard q _) = return (p /= q)
+          f ((_, _, p, _), TargetTeam q) = return (p /= q)
           f _ = return False
 
 -- 味方
@@ -76,13 +75,13 @@ targetableOwn = not <$> targetableOpponent
 -- 単体
 targetableOne :: Targetable
 targetableOne = ask >>= f
-    where f ((_, _, _, _), (TargetCard _ _)) = return True
+    where f (_, TargetCard _ _) = return True
           f _ = return False
 
 -- チーム
 targetableTeam :: Targetable
 targetableTeam = ask >>= f
-    where f ((_, _, _, _), (TargetTeam _)) = return True
+    where f (_, TargetTeam _) = return True
           f _ = return False
 
 -- 全体

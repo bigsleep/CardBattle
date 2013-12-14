@@ -1,21 +1,18 @@
 module Battle.ActionSpec where
 
-import Test.Hspec
-import Test.Hspec.HUnit
-import Test.Hspec.QuickCheck
-import qualified Test.QuickCheck.Property as Prop
-import Test.QuickCheck
-import Control.Monad.RWS
-import Control.Monad.Error
-import Control.Lens hiding (Action)
-import Debug.Trace
-import Text.Printf
+import Test.Hspec (Spec, describe)
+import Test.Hspec.QuickCheck (prop)
+import qualified Test.QuickCheck.Property as Prop (Result(..), succeeded, failed)
+import Control.Monad.State (get)
+import Control.Monad.RWS (runRWS)
+import Control.Monad.Error (runErrorT)
+import Control.Lens ((^.), (.~), (%~), (^?), (&), ix, _1)
+import Text.Printf (printf)
 
 import Battle.Types
-import Battle.Target
 import Battle.Battle
 import Battle.Action
-import Battle.TestUtil
+import Battle.TestUtil (chooseTargetCard)
 
 spec :: Spec
 spec = do
@@ -33,12 +30,12 @@ spec = do
         c <- chooseTargetCard setting' p
         let u = factorDenominator
         let unitFactor = PropertySet u u u u u u
-        let factor = unitFactor & attack .~ (2 * u)
-        let doubleAttack = (BattleEffect TargetAll factor, 1)
+        let factor' = unitFactor & attack .~ (2 * u)
+        let doubleAttack = (BattleEffect TargetAll factor', 1)
         let effects' = [doubleAttack, doubleAttack]
         let state' = (initializeBattleState setting') & effects .~ effects'
         let before = (setting' ^. (playerAccessor p)) !! c ^. properties
-        let expected = before `applyPropertyFactor` (factor `applyPropertyFactor` factor)
+        let expected = before `applyPropertyFactor` factor' `applyPropertyFactor` factor'
         let message r = "result: " ++ show r ++ "\nexpected: " ++ show expected
         return $ runCurrentPropertiesTest setting' state' p c expected message
 
@@ -47,8 +44,8 @@ spec = do
         c <- chooseTargetCard setting' p
         let u = factorDenominator
         let unitFactor = PropertySet u u u u u u
-        let factor = unitFactor & attack .~ (u `div` 2)
-        let halfAttack = (BattleEffect TargetAll factor, 1)
+        let factor' = unitFactor & attack .~ (u `div` 2)
+        let halfAttack = (BattleEffect TargetAll factor', 1)
         let effects' = [halfAttack, halfAttack]
         let state' = (initializeBattleState setting') & effects .~ effects'
         let before = (setting' ^. (playerAccessor p)) !! c ^. properties
@@ -121,7 +118,7 @@ runCurrentPropertiesTest :: BattleSetting -> BattleState -> Player -> Int -> Pro
 runCurrentPropertiesTest e s p c expected message = mkResult r
     where m = currentProperties p c
           (r, _, _) = runRWS (runErrorT m) e s
-          mkResult (Left s) = Prop.failed {Prop.reason = s}
+          mkResult (Left err) = Prop.failed {Prop.reason = err}
           mkResult (Right result) = if expected == result
                                        then Prop.succeeded
                                        else Prop.failed {Prop.reason = message result}

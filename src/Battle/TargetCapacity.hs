@@ -1,4 +1,20 @@
-module Battle.TargetCapacity where
+module Battle.TargetCapacity
+    ( aliveOne
+    , aliveTeam
+    , aliveAll
+    , aliveOpponentOne
+    , aliveOpponentTeam
+    , aliveOwnOne
+    , aliveOwnTeam
+    , deadOne
+    , deadTeam
+    , deadAll
+    , deadOpponentOne
+    , deadOpponentTeam
+    , deadOwnOne
+    , deadOwnTeam
+    , self
+    ) where
 
 import Battle.Types
 

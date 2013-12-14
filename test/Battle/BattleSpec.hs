@@ -2,16 +2,15 @@ module Battle.BattleSpec where
 
 import qualified Test.Hspec as Hspec
 import Test.Hspec.QuickCheck
-import Test.QuickCheck
+import Test.QuickCheck ()
 import qualified Test.QuickCheck.Property as P
 import Control.Monad.Reader
-import Control.Lens
+import Control.Lens ((^.))
 
 import Battle.Mock
-import Battle.TestUtil
+import Battle.TestUtil ()
 import qualified Battle.Types as T
 import qualified Battle.TargetCapacity as TC
-import qualified Battle.Battle as B
 
 spec :: Hspec.Spec
 spec =  battleAttackAttackSpec

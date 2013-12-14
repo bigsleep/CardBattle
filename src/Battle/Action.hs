@@ -10,15 +10,18 @@ import qualified Battle.Target as Target
 
 import Prelude hiding (lookup)
 import Control.Monad (forM)
-import Control.Monad.State ()
 import Control.Monad.State.Class (get, put)
 import Control.Monad.Reader.Class (ask)
 import Control.Monad.Writer.Class (tell)
-import Control.Monad.Error
-import Control.Monad.Error.Class ()
-import Control.Lens hiding (Action)
+import Control.Monad.Error.Class (throwError)
+import Control.Lens ((^.), (&), (%~), (.~), (^?), ix)
 
 execAction :: T.Player -> Int -> T.Action -> T.Target -> T.BattleTurn ()
+
+unitFactor :: T.PropertySet
+unitFactor = T.PropertySet a a a a a a
+    where a = T.factorDenominator
+
 
 -- Attack
 execAction p c (T.Attack f) t = do
@@ -40,9 +43,7 @@ execAction p c (T.Defense f) t = do
     after <- getProperties ts
     let changes = map (\(tc, (x, y)) -> T.PropertyChange tc (y `T.subPropertySet` x)) (ts `zip` (before `zip` after))
     tell [T.BattleCommandLog (T.BattleCommand p c (T.Defense f) t) changes]
-    where unitFactor = T.PropertySet a a a a a a
-          a = T.factorDenominator
-          getProperties xs = forM xs (uncurry currentProperties)
+    where getProperties xs = forM xs (uncurry currentProperties)
 
 -- Heal
 execAction p c (T.Heal a b) t = do
@@ -53,7 +54,7 @@ execAction p c (T.Heal a b) t = do
     tell [T.BattleCommandLog (T.BattleCommand p c (T.Heal a b) t) (l : logs)]
 
 -- Buff
-execAction p c (T.Buff q f _ b) t = do
+execAction p c (T.Buff q f a b) t = do
     setting' <- ask
     state' <- get
     let factor = unitFactor & T.propertyAccessor q .~ f
@@ -65,9 +66,7 @@ execAction p c (T.Buff q f _ b) t = do
     l <- consumeMp p c b
     let changes = map (\(tc, (x, y)) -> T.PropertyChange tc (y `T.subPropertySet` x)) (ts `zip` (before `zip` after))
     tell [T.BattleCommandLog (T.BattleCommand p c (T.Buff q f a b) t) (l : changes)]
-    where unitFactor = T.PropertySet a a a a a a
-          a = T.factorDenominator
-          getProperties xs = forM xs (uncurry currentProperties)
+    where getProperties xs = forM xs (uncurry currentProperties)
 
 
 -- 単体攻撃
@@ -131,12 +130,12 @@ currentProperties :: T.Player -> Int -> T.BattleTurn T.PropertySet
 currentProperties p c = do
     e <- ask
     s <- get
-    case (currentProperties' e s p c) of
+    case currentProperties' e s p c of
          Nothing -> throwError "in currentProperties. list index out of range."
          Just x  -> return x
 
 currentProperties' :: T.BattleSetting -> T.BattleState -> T.Player -> Int -> Maybe T.PropertySet
 currentProperties' e s p c = fmap applyEffect card'
-    where card' = (e ^. (T.playerAccessor p)) ^? ix c
-          applyEffect (T.Card _ q _) = foldl T.applyPropertyFactor q (effectFactors (s ^. T.oneTurnEffects ++ (map fst (s ^. T.effects))))
-          effectFactors x = map (^. T.factor) $ filter ((T.onTarget p c) . (^. T.target)) x
+    where card' = e ^. T.playerAccessor p ^? ix c
+          applyEffect (T.Card _ q _) = foldl T.applyPropertyFactor q (effectFactors (s ^. T.oneTurnEffects ++ map fst (s ^. T.effects)))
+          effectFactors x = map (^. T.factor) $ filter (T.onTarget p c . (^. T.target)) x

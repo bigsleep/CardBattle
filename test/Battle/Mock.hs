@@ -11,10 +11,10 @@ module Battle.Mock
     )
     where
 
-import Control.Monad.Reader (Reader)
-import Control.Monad.Error (runErrorT)
+import Control.Monad.Identity (Identity)
+import Control.Monad.Reader (Reader, ReaderT)
 import Control.Monad.Reader.Class (ask)
-import Control.Monad.Trans.RWS (RWS, runRWST)
+import Control.Monad.RWS (runRWST)
 import Control.Monad.Free (Free(Free, Pure))
 import Control.Lens hiding (Action, setting)
 
@@ -35,14 +35,15 @@ runMockIO :: Free BattleIO a -> MockIO (Either String a)
 
 runMockIO (Pure a) = return (Right a)
 runMockIO (Free (LoadSetting f)) = ask >>= runMockIO . f . (^. setting)
-runMockIO (Free (InputPlayerCommands t p cs f)) = do
+runMockIO (Free (InputPlayerCommands t p _ f)) = do
     scenario <- ask
     let c = (scenario ^. playerAccessor p) !! t
     runMockIO (f c)
-runMockIO (Free (OutputBattleState s c)) = runMockIO c
-runMockIO (Free (OutputMessage s c)) = runMockIO c
+runMockIO (Free (OutputBattleState _ c)) = runMockIO c
+runMockIO (Free (OutputMessage _ c)) = runMockIO c
 runMockIO (Free (OutputError s)) = return . Left $ s
 
+runBattleOnMockIO :: ReaderT BattleScenario Identity (Either String ((), (BattleSetting, BattleState), [BattleLog]))
 runBattleOnMockIO = do
     e <- ask
     let setting' = e ^. setting
