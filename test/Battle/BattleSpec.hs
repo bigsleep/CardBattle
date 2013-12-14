@@ -14,7 +14,8 @@ import qualified Battle.TargetCapacity as TC
 import qualified Battle.Battle as B
 
 spec :: Hspec.Spec
-spec = battleAttackAttackSpec
+spec =  battleAttackAttackSpec
+     >> battleAttackDefenseSpec
 
 
 battleAttackAttackSpec :: Hspec.Spec
@@ -53,7 +54,7 @@ battleAttackDefenseSpec = prop "1ターン攻撃防御" $
             defense = properties ^. T.defense
             defenseFactor = T.factorDenominator * 2
             attackSkills = [T.Skill (T.Attack T.factorDenominator) TC.aliveOpponentOne]
-            defenseSkills = [T.Skill (T.Defense defenseFactor) TC.aliveOpponentOne] 
+            defenseSkills = [T.Skill (T.Defense defenseFactor) TC.self] 
             attackCards = [T.Card "testCard" properties attackSkills]
             defenseCards = [T.Card "testCard" properties defenseSkills]
             setting = T.BattleSetting attackCards defenseCards (Just 1)
@@ -64,8 +65,8 @@ battleAttackDefenseSpec = prop "1ターン攻撃防御" $
             expectedCardState = T.CardState afterHp mp
             expectedState = T.BattleState [T.CardState hp mp] [expectedCardState] [] [] 1
             m = runBattleOnMockIO
-            Right (_, (_, s), _) = runReader m senario
-            message = "result: " ++ show s ++ "\nexpected: " ++ show expectedState
+            Right (_, (_, s), w) = runReader m senario
+            message = "result: " ++ show s ++ "\nexpected: " ++ show expectedState ++ "\nlog: " ++ show w
             result = if s == expectedState
                 then P.succeeded
                 else P.failed {P.reason = message}
