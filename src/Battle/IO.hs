@@ -58,17 +58,16 @@ outputError = lift . Free . OutputError
 
 checkInputCommands :: [T.CommandChoice] -> [T.PlayerCommand] -> BattleMachine [T.PlayerCommand]
 checkInputCommands cs ps = do
-    checkLength
-    forM_ (zip cs ps) check
-    return ps
-    where checkLength = when (length cs /= length ps) (outputError "in checkInputCommand. invalid size.")
-          check (a, b) = if a ^. T.cardIndex /= b ^. T.cardIndex
-                            then outputError "in checkInputCommand. invalid cardIndex."
-                            else checkAction a b
-          checkAction a b = case a ^? T.actions . ix (b ^. T.skillIndex) of
-                                 Nothing -> outputError "in checkInputCommand. invalid skillIndex."
-                                 Just x -> checkTarget (x ^. T.targets) (b ^. T.targetIndex)
-          checkTarget a b = case a ^? ix b of
-                                 Nothing -> outputError "in checkInputCommand. invalid targetIndex."
-                                 Just _ -> return ()
-
+     checkLength
+     forM_ (zip cs ps) check
+     return ps
+     where checkLength = when (length cs /= length ps) (outputError $ "in checkInputCommand. invalid size. " ++ show cs ++ show ps)
+           check (a, b) = if a ^. T.cardIndex /= b ^. T.cardIndex
+                             then outputError $ "in checkInputCommand. invalid cardIndex." ++ show cs ++ show ps
+                             else checkAction a b
+           checkAction a b = case a ^? T.actions . ix (b ^. T.skillIndex) of
+                                  Nothing -> outputError $ "in checkInputCommand. invalid skillIndex." ++ show cs ++ show ps
+                                  Just x -> checkTarget (x ^. T.targets) (b ^. T.targetIndex)
+           checkTarget a b = case a ^? ix b of
+                                  Nothing -> outputError $ "in checkInputCommand. invalid targetIndex." ++ show cs ++ show ps
+                                  Just _ -> return ()

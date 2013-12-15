@@ -12,7 +12,7 @@ import Battle.Property
 import Prelude hiding (lookup)
 import GHC.Exts(sortWith)
 import Control.Lens ((^.), (.~), (&), (^?), (%~), ix, _2)
-import Control.Monad (forM, forM_, filterM, liftM, when, forever)
+import Control.Monad (forM, forM_, filterM, liftM, when)
 import Control.Monad.Error (runErrorT)
 import Control.Monad.Error.Class (throwError)
 import Control.Monad.State.Class (get, put)
@@ -136,18 +136,21 @@ enumerateCommandChoice p = do
     let cardStates = state' ^. T.playerAccessor p
     let cardNum = length cards
     let withIndex = zip3 [0..(cardNum - 1)] cards cardStates
-    mapM applyCard . filter active $ withIndex
-    where active (_, _, x) = x ^. T.hp > 0
+    filterEmpty . mapM applyCard . filter alive $ withIndex
+    where alive (_, _, x) = x ^. T.hp > 0
           applyCard (i, x, y) = enumerateActionChoice p i x y >>= \ac -> return $ T.CommandChoice i ac
+          filterEmpty = fmap (filter (\a -> a ^. T.actions /= []))
+
 
 enumerateActionChoice :: T.Player -> Int -> T.Card -> T.CardState -> BattleMachine [T.ActionChoice]
 enumerateActionChoice p c q s = do
     (setting', state') <- get
-    return $ actionChoices setting' state'
+    return . filterEmpty $ actionChoices setting' state'
     where executables = filter (canPerform s . (^. T.action)) (q ^. T.skills)
           withIndex = zip [0..(length executables - 1)] executables
           actionChoices e a = map (apply e a) withIndex
-          apply e x (i, T.Skill a t) = T.ActionChoice i a (enumerateTargets e x p c (targetable t)) 
+          apply e x (i, T.Skill a t) = T.ActionChoice i a (enumerateTargets e x p c (targetable t))
+          filterEmpty = filter (\x -> x ^. T.targets /= [])
 
 activeEffect :: (T.BattleEffect, Int) -> BattleMachine Bool
 activeEffect (effect, remaining) =

@@ -9,7 +9,6 @@ import Control.Applicative
 import Control.Lens hiding (Action, elements)
 
 import Battle.Types
-import Battle.Property
 
 -- Arbitrary
 instance Arbitrary Player where

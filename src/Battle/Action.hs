@@ -49,10 +49,14 @@ execAction p c (T.Defense f) t = do
 -- Heal
 execAction p c (T.Heal a b) t = do
     setting' <- ask
+    prop <- P.currentProperties p c
+    let healHp = (prop ^. T.magic) * a `div` P.factorDenominator
     let ts = Target.enumerateAsCards setting' t
-    logs <- forM ts (healOne a)
+    logs <- forM ts (healOne healHp)
     l <- consumeMp p c b
     tell [T.BattleCommandLog (T.BattleCommand p c (T.Heal a b) t) (l : logs)]
+
+
 
 -- Buff
 execAction p c (T.Buff q f a b) t = do
@@ -75,7 +79,7 @@ execAction p c (T.Buff q f a b) t = do
 -- 単体攻撃
 attackOne :: Int -> (T.Player, Int) -> T.BattleTurn T.ActionResult
 attackOne attack' (tp, tc) = do
-    state' <- get 
+    state' <- get
     hp' <- getHp (state' ^? (T.playerAccessor tp . ix tc))
     if hp' <= 0
         then return T.ActionFailure
@@ -92,7 +96,7 @@ attackOne attack' (tp, tc) = do
 -- 単体回復
 healOne :: Int -> (T.Player, Int) -> T.BattleTurn T.ActionResult
 healOne h (tp, tc) = do
-    state' <- get 
+    state' <- get
     hp' <- getHp (state' ^? (T.playerAccessor tp . ix tc))
     if hp' <= 0
         then return T.ActionFailure
@@ -120,14 +124,14 @@ canPerform s (T.Buff _ _ _ b) = s ^. T.mp >= b
 consumeMp :: T.Player -> Int -> Int -> T.BattleTurn T.ActionResult
 consumeMp p c q = do
     s <- get
-    mp' <- getMp s
-    if mp' >= q
-        then put $ s & T.playerAccessor p . ix c . T.mp .~ (mp' - q)
+    mp <- getMp s
+    if mp >= q
+        then put $ s & T.playerAccessor p . ix c . T.mp .~ (mp - q)
         else throwError "in consumeMp. mp less than consumption."
     return $ T.Consume (p, c) (T.CardState 0 q)
-    where getMp x = case x ^? T.playerAccessor p . ix c . T.mp of
+    where getMp s = case getCardState s (p, c) of
                          Nothing -> throwError "in consumeMp."
-                         Just y -> return y
+                         Just cardState -> return (cardState ^. T.mp)
 
 failureIfEmpty :: [T.ActionResult] -> [T.ActionResult]
 failureIfEmpty [] = [T.ActionFailure]
