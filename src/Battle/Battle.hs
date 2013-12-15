@@ -12,19 +12,20 @@ import Battle.Property
 import Prelude hiding (lookup)
 import GHC.Exts(sortWith)
 import Control.Lens ((^.), (.~), (&), (^?), (%~), ix, _2)
-import Control.Monad (forM, forM_, filterM, liftM)
+import Control.Monad (forM, forM_, filterM, liftM, when, forever)
 import Control.Monad.Error (runErrorT)
 import Control.Monad.Error.Class (throwError)
 import Control.Monad.State.Class (get, put)
 import Control.Monad.Writer.Class (tell)
 import Control.Monad.Trans.RWS (runRWS)
-import Control.Monad.Loops (whileM_)
 
 battle :: BattleMachine ()
 battle = do
     setting' <- loadSetting
     put (setting', initializeBattleState setting')
     whileM_ isRunning battleTurn
+    where whileM_ :: (Monad m) => m Bool -> m () -> m ()
+          whileM_ a b = a >>= \x -> when x (b >> whileM_ a b)
 
 initializeBattleState :: T.BattleSetting -> T.BattleState
 initializeBattleState s = T.BattleState (initCards $ s ^. T.first) (initCards $ s ^. T.second) [] [] 0

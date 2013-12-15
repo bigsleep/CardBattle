@@ -14,7 +14,7 @@ module Battle.Mock
 import Control.Monad.Identity (Identity)
 import Control.Monad.Reader (Reader, ReaderT)
 import Control.Monad.Reader.Class (ask)
-import Control.Monad.RWS (runRWST)
+import Control.Monad.Trans.RWS (runRWST)
 import Control.Monad.Free (Free(Free, Pure))
 import Control.Lens hiding (Action, setting)
 
