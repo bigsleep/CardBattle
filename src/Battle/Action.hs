@@ -2,14 +2,13 @@
 module Battle.Action
     ( execAction
     , canPerform
-    , currentProperties
-    , currentProperties'
     , isCardAlive
     , getCardState
     ) where
 
 import qualified Battle.Types as T
 import qualified Battle.Target as Target
+import qualified Battle.Property as P
 
 import Prelude hiding (lookup)
 import Control.Monad (forM, filterM)
@@ -24,8 +23,8 @@ execAction :: T.Player -> Int -> T.Action -> T.Target -> T.BattleTurn ()
 -- Attack
 execAction p c (T.Attack f) t = do
     setting' <- ask
-    prop <- currentProperties p c
-    let attack' = (prop ^. T.attack * f) `div` T.factorDenominator
+    prop <- P.currentProperties p c
+    let attack' = (prop ^. T.attack * f) `div` P.factorDenominator
     let ts = Target.enumerateAsCards setting' t
     logs <- forM ts (attackOne attack')
     tell [T.BattleCommandLog (T.BattleCommand p c (T.Attack f) t) (failureIfEmpty logs)]
@@ -42,8 +41,8 @@ execAction p c (T.Defense f) t = do
             let changes = map change effects
             put $ state & T.oneTurnEffects %~ (++ effects)
             tell [T.BattleCommandLog (T.BattleCommand p c (T.Defense f) t) changes]
-    where effect x = T.BattleEffect x (unitFactor & T.defense .~ f)
-          change x = T.PropertyChange (x ^. T.target) (x ^. T.factor)
+    where effect x = T.BattleEffect x T.DefenseTag f
+          change x = T.PropertyChange (x ^. T.target) (x ^. T.property) (x ^. T.factor)
           g Nothing = throwError "in execAction."
           g (Just x) = return x
 
@@ -59,21 +58,18 @@ execAction p c (T.Heal a b) t = do
 execAction p c (T.Buff q f a b) t = do
     setting <- ask
     state <- get
-    let factor = unitFactor & T.propertyAccessor q .~ f
     cs <- filterM (alive state) (Target.enumerateAsCards setting t)
-    let effects = map (effect factor a) cs
+    let effects = map (\x -> (T.BattleEffect x q f, a)) cs
     if null effects
         then tell [T.BattleCommandLog (T.BattleCommand p c (T.Buff q f a b) t) [T.ActionFailure]]
         else do
-            let changes = map (change factor) cs
+            let changes = map (\x -> T.PropertyChange x q f) cs
             put $ state & T.effects %~ (++ effects)
             l <- consumeMp p c b
             tell [T.BattleCommandLog (T.BattleCommand p c (T.Buff q f a b) t) (l : changes)]
     where alive s (tp, tc) = case s ^? T.playerAccessor tp . ix tc of
                                   Just cstate -> return $ cstate ^. T.hp > 0
                                   Nothing -> throwError "in execAction. list index out of range."
-          effect g turn x = (T.BattleEffect x g, turn)
-          change x y = T.PropertyChange y x
 
 
 -- 単体攻撃
@@ -84,7 +80,7 @@ attackOne attack' (tp, tc) = do
     if hp' <= 0
         then return T.ActionFailure
         else do
-            prop <- currentProperties tp tc
+            prop <- P.currentProperties tp tc
             let defense' = prop ^. T.defense
             let damage = min (max 1 (attack' - defense')) hp'
             put $ state' & (T.playerAccessor tp . ix tc . T.hp) .~ (hp' - damage)
@@ -101,7 +97,7 @@ healOne h (tp, tc) = do
     if hp' <= 0
         then return T.ActionFailure
         else do
-            prop <- currentProperties tp tc
+            prop <- P.currentProperties tp tc
             let maxHp' = prop ^. T.maxHp
             let incHp = max 0 (min h (maxHp' - hp'))
             put $ state' & (T.playerAccessor tp . ix tc . T.hp) .~ (hp' + incHp)
@@ -132,25 +128,6 @@ consumeMp p c q = do
     where getMp x = case x ^? T.playerAccessor p . ix c . T.mp of
                          Nothing -> throwError "in consumeMp."
                          Just y -> return y
-
-currentProperties :: T.Player -> Int -> T.BattleTurn T.PropertySet
-currentProperties p c = do
-    e <- ask
-    s <- get
-    case currentProperties' e s p c of
-         Nothing -> throwError "in currentProperties. list index out of range."
-         Just x  -> return x
-
-currentProperties' :: T.BattleSetting -> T.BattleState -> T.Player -> Int -> Maybe T.PropertySet
-currentProperties' e s p c = fmap applyEffect card'
-    where card' = e ^. T.playerAccessor p ^? ix c
-          applyEffect (T.Card _ q _) = foldl T.applyPropertyFactor q (effectFactors (s ^. T.oneTurnEffects ++ map fst (s ^. T.effects)))
-          effectFactors xs = map (^. T.factor) $ filter (onTarget p c) xs
-          onTarget q d x = (q, d) == x ^. T.target
-
-unitFactor :: T.PropertySet
-unitFactor = T.PropertySet a a a a a a
-    where a = T.factorDenominator
 
 failureIfEmpty :: [T.ActionResult] -> [T.ActionResult]
 failureIfEmpty [] = [T.ActionFailure]

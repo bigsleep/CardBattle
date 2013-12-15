@@ -9,6 +9,7 @@ import Control.Applicative
 import Control.Lens hiding (Action, elements)
 
 import Battle.Types
+import Battle.Property
 
 -- Arbitrary
 instance Arbitrary Player where
@@ -53,10 +54,7 @@ instance Arbitrary BattleEffect where
         tc <- choose (0, 10)
         p <- arbitrary
         f <- arbitrary
-        let factor' = unitFactor & propertyAccessor p %~ (+f)
-        return $ BattleEffect (tp, tc) factor'
-        where unitFactor = PropertySet u u u u u u
-              u = factorDenominator
+        return $ BattleEffect (tp, tc) p f
 
 instance Arbitrary PropertyTag where
     arbitrary = elements $ enumFrom MaxHpTag

@@ -10,6 +10,7 @@ import Control.Lens ((^.), (.~), (%~), (^?), (&), ix, _1)
 import Text.Printf (printf)
 
 import Battle.Types
+import Battle.Property
 import Battle.Battle
 import Battle.Action
 import Battle.TestUtil (chooseTargetCard)
@@ -31,7 +32,7 @@ spec = do
         let u = factorDenominator
         let unitFactor = PropertySet u u u u u u
         let factor' = unitFactor & attack .~ (2 * u)
-        let doubleAttack = (BattleEffect (p, c) factor', 1)
+        let doubleAttack = (BattleEffect (p, c) AttackTag (u * 2), 1)
         let effects' = [doubleAttack, doubleAttack]
         let state' = (initializeBattleState setting') & effects .~ effects'
         let before = (setting' ^. (playerAccessor p)) !! c ^. properties
@@ -43,9 +44,7 @@ spec = do
     prop "currentProperties 攻撃力1/2*1/2" $ \setting' p -> do
         c <- chooseTargetCard setting' p
         let u = factorDenominator
-        let unitFactor = PropertySet u u u u u u
-        let factor' = unitFactor & attack .~ (u `div` 2)
-        let halfAttack = (BattleEffect (p, c) factor', 1)
+        let halfAttack = (BattleEffect (p, c) AttackTag (u `div` 2), 1)
         let effects' = [halfAttack, halfAttack]
         let state' = (initializeBattleState setting') & effects .~ effects'
         let before = (setting' ^. (playerAccessor p)) !! c ^. properties
@@ -58,7 +57,7 @@ spec = do
         c <- chooseTargetCard setting' p
         let state' = (initializeBattleState setting') & effects .~ effects'
         let targeted q d e = (q, d) == e ^. _1 . target
-        let es = map (^. _1 . factor) $ filter (targeted p c) effects'
+        let es = map (toPropertyFactor . (^. _1)) $ filter (targeted p c) effects'
         let before = (setting' ^. (playerAccessor p)) !! c ^. properties
         let expected = foldl applyPropertyFactor before es
         let message r = "result: " ++ show r ++ "\nexpected: " ++ show expected

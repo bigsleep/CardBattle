@@ -7,6 +7,7 @@ import qualified Battle.Types as T
 import Battle.IO
 import Battle.Target
 import Battle.Action
+import Battle.Property
 
 import Prelude hiding (lookup)
 import GHC.Exts(sortWith)
