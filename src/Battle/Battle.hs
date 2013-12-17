@@ -151,7 +151,7 @@ enumerateActionChoice p c q s = do
 
 activeEffect :: (T.BattleEffect, Int) -> BattleMachine Bool
 activeEffect (effect, remaining) =
-    if remaining >= 0
+    if remaining <= 0
         then return False
         else get >>= \(_, s) -> isCardAlive s t
     where t = effect ^. T.target

@@ -17,6 +17,7 @@ spec :: Hspec.Spec
 spec =  battleAttackAttackSpec
      >> battleAttackDefenseSpec
      >> battleAttackHealSpec
+     >> battleBufSpec
 
 
 battleAttackAttackSpec :: Hspec.Spec
@@ -106,6 +107,40 @@ battleAttackHealSpec = prop "1ターン攻撃回復" $
                          else mp
             expectedCardState = T.CardState afterHp afterMp
             expectedState = T.BattleState [T.CardState hp mp] [expectedCardState] [] [] 1
+            m = runBattleOnMockIO
+            (s, w) = case runReader m senario of
+                          Right (_, (_, a), b) -> (a, b)
+                          Left a -> error a
+            message = "result: " ++ show s ++ "\nexpected: " ++ show expectedState ++ "\nlog: " ++ show w
+            result = if s == expectedState
+                then P.succeeded
+                else P.failed {P.reason = message}
+        in result
+
+
+battleBufSpec :: Hspec.Spec
+battleBufSpec = prop "攻撃力Buf使用" $
+    \properties (Positive turn) (Positive useMp) (Positive factor) ->
+        let
+            hp = properties ^. T.maxHp
+            mp = properties ^. T.maxMp
+            tag = T.AttackTag
+            buffSkills = [T.Skill (T.Buff tag factor turn useMp) TC.self]
+            bufCards = [T.Card "testCard" properties buffSkills]
+            nullCards = [T.Card "testCard" properties []]
+            setting = T.BattleSetting bufCards nullCards (Just 1)
+            commands = if mp >= useMp
+                          then [T.PlayerCommand 0 0 0]
+                          else []
+            senario = BattleScenario setting [commands] [[]]
+            expectedEffects = if turn - 1 > 0 && mp >= useMp
+                                 then [(T.BattleEffect (T.FirstPlayer, 0) tag factor, turn - 1)]
+                                 else []
+            firstState = if mp >= useMp
+                            then [T.CardState hp (mp - useMp)]
+                            else [T.CardState hp mp]
+            secondState = [T.CardState hp mp]
+            expectedState = T.BattleState firstState secondState [] expectedEffects 1
             m = runBattleOnMockIO
             (s, w) = case runReader m senario of
                           Right (_, (_, a), b) -> (a, b)
