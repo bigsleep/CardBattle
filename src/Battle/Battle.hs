@@ -14,7 +14,6 @@ import GHC.Exts(sortWith)
 import Control.Lens ((^.), (.~), (&), (^?), (%~), ix, _2)
 import Control.Monad (forM, forM_, filterM, liftM, when)
 import Control.Monad.Error (runErrorT)
-import Control.Monad.Error.Class (throwError)
 import Control.Monad.State.Class (get, put)
 import Control.Monad.Writer.Class (tell)
 import Control.Monad.Trans.RWS (runRWS)
@@ -95,11 +94,9 @@ execTurn cs = do
 execCommand :: T.BattleCommand -> T.BattleTurn ()
 execCommand (T.BattleCommand p c a t) = do
     state' <- get
-    card' <- g $ getCardState state' (p, c)
+    card' <- getCardState state' (p, c)
     exec (alive card') (canPerform card' a)
-    where g Nothing = throwError "in execCommand"
-          g (Just x) = return x
-          alive s = s ^. T.hp > 0
+    where alive s = s ^. T.hp > 0
           exec :: Bool -> Bool -> T.BattleTurn ()
           exec False _ = tell [T.BattleCommandLog (T.BattleCommand p c a t) [T.FailureBecauseDeath]]
           exec True False = tell [T.BattleCommandLog (T.BattleCommand p c a t) [T.Underqualified]]
@@ -156,7 +153,5 @@ activeEffect :: (T.BattleEffect, Int) -> BattleMachine Bool
 activeEffect (effect, remaining) =
     if remaining >= 0
         then return False
-        else get >>= \(_, s) -> g $ isCardAlive s t
+        else get >>= \(_, s) -> isCardAlive s t
     where t = effect ^. T.target
-          g Nothing = outputError "in activeEffect"
-          g (Just x) = return x

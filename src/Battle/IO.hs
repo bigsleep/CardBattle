@@ -1,3 +1,7 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE OverlappingInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+
 module Battle.IO
     ( BattleIO(..)
     , BattleMachine
@@ -11,11 +15,12 @@ module Battle.IO
     , checkInputCommands
     ) where
 
-import Control.Monad(forM_, when)
+import Control.Monad (forM_, when)
+import Control.Monad.Error (MonadError, throwError, catchError)
 import Control.Monad.Trans (lift)
 import Control.Monad.Trans.RWS (RWST)
-import Control.Monad.Free(Free(Free, Pure))
-import Control.Lens hiding (Action)
+import Control.Monad.Free (Free(Free, Pure))
+import Control.Lens ((^.), (^?), ix)
 
 import qualified Battle.Types as T
 
@@ -32,6 +37,11 @@ instance Functor BattleIO where
     fmap f (OutputBattleState s c) = OutputBattleState s (f c)
     fmap f (OutputMessage s c) = OutputMessage s (f c)
     fmap _ (OutputError s) = OutputError s
+
+instance MonadError String (Free BattleIO) where
+    throwError s = Free (OutputError s)
+    catchError (Free (OutputError s)) f = f s
+    catchError a _ = a
 
 type BattleMachine = RWST () [T.BattleLog] (T.BattleSetting, T.BattleState) (Free BattleIO)
 

@@ -11,7 +11,7 @@ import qualified Battle.Target as Target
 import qualified Battle.Property as P
 
 import Prelude hiding (lookup)
-import Control.Monad (forM, filterM)
+import Control.Monad (forM, filterM, liftM)
 import Control.Monad.State.Class (get, put)
 import Control.Monad.Reader.Class (ask)
 import Control.Monad.Writer.Class (tell)
@@ -28,12 +28,12 @@ execAction p c (T.Attack f) t = do
     let ts = Target.enumerateAsCards setting' t
     logs <- forM ts (attackOne attack')
     tell [T.BattleCommandLog (T.BattleCommand p c (T.Attack f) t) (failureIfEmpty logs)]
-    
+
 -- Defense
 execAction p c (T.Defense f) t = do
     setting <- ask
     state <- get
-    ts <- filterM (g . isCardAlive state) (Target.enumerateAsCards setting t)
+    ts <- filterM (isCardAlive state) (Target.enumerateAsCards setting t)
     let effects = map effect ts
     if null effects
         then tell [T.BattleCommandLog (T.BattleCommand p c (T.Defense f) t) [T.ActionFailure]]
@@ -43,8 +43,6 @@ execAction p c (T.Defense f) t = do
             tell [T.BattleCommandLog (T.BattleCommand p c (T.Defense f) t) changes]
     where effect x = T.BattleEffect x T.DefenseTag f
           change x = T.PropertyChange (x ^. T.target) (x ^. T.property) (x ^. T.factor)
-          g Nothing = throwError "in execAction."
-          g (Just x) = return x
 
 -- Heal
 execAction p c (T.Heal a b) t = do
@@ -129,18 +127,18 @@ consumeMp p c q = do
         then put $ s & T.playerAccessor p . ix c . T.mp .~ (mp - q)
         else throwError "in consumeMp. mp less than consumption."
     return $ T.Consume (p, c) (T.CardState 0 q)
-    where getMp s = case getCardState s (p, c) of
-                         Nothing -> throwError "in consumeMp."
-                         Just cardState -> return (cardState ^. T.mp)
+    where getMp s = liftM (^. T.mp) (getCardState s (p, c))
 
 failureIfEmpty :: [T.ActionResult] -> [T.ActionResult]
 failureIfEmpty [] = [T.ActionFailure]
 failureIfEmpty as = as
 
-isCardAlive :: T.BattleState -> (T.Player, Int) -> Maybe Bool
+isCardAlive :: (MonadError String m) => T.BattleState -> (T.Player, Int) -> m Bool
 isCardAlive s (p, c) = do
     cardState <- getCardState s (p, c)
     return $ cardState ^. T.hp > 0
 
-getCardState :: T.BattleState -> (T.Player, Int) -> Maybe T.CardState
-getCardState s (p, c) = s ^? T.playerAccessor p . ix c
+getCardState :: (MonadError String m) => T.BattleState -> (T.Player, Int) -> m T.CardState
+getCardState s (p, c) = case s ^? T.playerAccessor p . ix c of
+                             Just x -> return x
+                             Nothing -> throwError $ "in getCardState. player: " ++ show p ++ " card: " ++ show c
