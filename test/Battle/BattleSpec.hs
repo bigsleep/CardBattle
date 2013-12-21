@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Battle.BattleSpec where
 
 import qualified Test.Hspec as Hspec
@@ -6,6 +7,7 @@ import Test.QuickCheck (Positive(..))
 import qualified Test.QuickCheck.Property as P
 import Control.Monad.Reader
 import Control.Lens ((^.))
+import Data.ByteString.Char8 ()
 
 import Battle.Mock
 import Battle.TestUtil ()
