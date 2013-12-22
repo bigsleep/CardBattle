@@ -48,7 +48,7 @@ spec = do
 
     H.it "Skill to JSON" $ do
         let result = DA.toJSON expectedSkill
-        let expected = DA.object ["Action" .= DA.object ["Attack" .= (100 :: Int)], "Target" .= DA.object ["TargetCapacityOpponent" .= ([] :: [DA.Value])]]
+        let expected = DA.object ["Action" .= DA.object ["Attack" .= (100 :: Int)], "Target" .= (0 :: Int)]
         result `H.shouldBe` expected
 
     H.it "JSON to BattleEffect" $ do
@@ -76,10 +76,10 @@ expectedCard :: Card
 expectedCard = (Card (BS.pack "あああ") (PropertySet 0 0 0 0 0 0) [])
 
 skillJSON :: String
-skillJSON = "{\"Action\":{\"Attack\":100},\"Target\":{\"TargetCapacityOpponent\":[]}}"
+skillJSON = "{\"Action\":{\"Attack\":100},\"Target\":0}}"
 
 expectedSkill :: Skill
-expectedSkill = Skill (Attack 100) TargetCapacityOpponent
+expectedSkill = Skill (Attack 100) TcAlmighty
 
 battleEffectJSON :: String
 battleEffectJSON = "{\"Target\":[0,0],\"Property\":0,\"Factor\":100}"

@@ -115,19 +115,23 @@ data Action =
 $(deriveJSON id ''Action)
 
 data TargetCapacity =
-    TargetCapacityOne |
-    TargetCapacityTeam |
-    TargetCapacityAll |
-    TargetCapacityAlmighty |
-    TargetCapacityOwn |
-    TargetCapacityOpponent |
-    TargetCapacitySelf |
-    TargetCapacityAlive |
-    TargetCapacityDead |
-    TargetCapacityMixAnd [TargetCapacity] |
-    TargetCapacityMixOr [TargetCapacity]
-    deriving (Show, Eq)
-$(deriveJSON id ''TargetCapacity)
+    TcAlmighty |
+    TcAliveOne |
+    TcAliveTeam |
+    TcAliveAll |
+    TcAliveOpponentOne |
+    TcAliveOpponentTeam |
+    TcAliveOwnOne |
+    TcAliveOwnTeam |
+    TcDeadOne |
+    TcDeadTeam |
+    TcDeadAll |
+    TcDeadOpponentOne |
+    TcDeadOpponentTeam |
+    TcDeadOwnOne |
+    TcDeadOwnTeam |
+    TcSelf deriving (Show, Eq, Ord, Enum, Bounded)
+instance EnumJSON TargetCapacity
 
 data Skill = Skill {
     _skillAction :: Action,

@@ -1,122 +1,99 @@
 {-# LANGUAGE TypeOperators #-}
 module Battle.Target
     ( enumerateAllTargets
-    , enumerateTargets 
+    , enumerateTargets
     , enumerateAsCards
-    , Targetable
     , targetable
-    , targetableAlmighty
-    , targetableNothing
-    , targetableSelf
-    , targetableOwn
-    , targetableOpponent
-    , targetableOne
-    , targetableTeam
-    , targetableAll
-    , targetableAlive
-    , targetableDead
     ) where
 
 import Control.Applicative((<$>), liftA2)
 import Control.Monad.Reader(Reader, runReader)
 import Control.Monad.Reader.Class(ask)
 import Control.Lens ((^.), (^?), ix)
-import Battle.Types
+import Prelude hiding (all)
+
+import qualified Battle.Types as T
 
 -- ターゲット全列挙
-enumerateAllTargets :: BattleSetting -> [Target]
+enumerateAllTargets :: T.BattleSetting -> [T.Target]
 enumerateAllTargets e =
-    f ++ s ++ [TargetTeam FirstPlayer, TargetTeam SecondPlayer, TargetAll]
-    where f = map (TargetCard FirstPlayer) [0..(length (e ^. first) - 1)]
-          s = map (TargetCard SecondPlayer) [0..(length (e ^. second) - 1)]
+    f ++ s ++ [T.TargetTeam T.FirstPlayer, T.TargetTeam T.SecondPlayer, T.TargetAll]
+    where f = map (T.TargetCard T.FirstPlayer) [0..(length (e ^. T.first) - 1)]
+          s = map (T.TargetCard T.SecondPlayer) [0..(length (e ^. T.second) - 1)]
 
 -- ターゲット列挙
-enumerateTargets :: BattleSetting -> BattleState -> Player -> Int -> Targetable -> [Target]
+enumerateTargets :: T.BattleSetting -> T.BattleState -> T.Player -> Int -> Targetable -> [T.Target]
 enumerateTargets e s p c x = filtered
         where filtered = filter f (enumerateAllTargets e)
               f = curry (runReader x) (e, s, p, c)
 
 -- 対象をカードとして列挙
-enumerateAsCards :: BattleSetting -> Target -> [(Player, Int)]
-enumerateAsCards _ (TargetCard p c) = [(p, c)]
-enumerateAsCards e (TargetTeam p) = map (\c -> (p, c)) [0..length']
-    where length' = length $ e ^. playerAccessor p
-enumerateAsCards e TargetAll = enumerate FirstPlayer ++ enumerate SecondPlayer
-    where enumerate p = enumerateAsCards e (TargetTeam p)
+enumerateAsCards :: T.BattleSetting -> T.Target -> [(T.Player, Int)]
+enumerateAsCards _ (T.TargetCard p c) = [(p, c)]
+enumerateAsCards e (T.TargetTeam p) = map (\c -> (p, c)) [0..length']
+    where length' = length $ e ^. T.playerAccessor p
+enumerateAsCards e T.TargetAll = enumerate T.FirstPlayer ++ enumerate T.SecondPlayer
+    where enumerate p = enumerateAsCards e (T.TargetTeam p)
 
 -- targetable
-type Targetable = Reader ((BattleSetting, BattleState, Player, Int), Target) Bool
+type Targetable = Reader ((T.BattleSetting, T.BattleState, T.Player, Int), T.Target) Bool
 
--- 全て
-targetableAlmighty :: Targetable
-targetableAlmighty = return True
-
--- 空
-targetableNothing :: Targetable
-targetableNothing = return False
-
--- カード位置同じ
-targetableSamePosition :: Targetable
-targetableSamePosition = ask >>= f
-    where f ((_, _, _, c), TargetCard _ d) = return (c == d)
+samePosition :: Targetable
+samePosition = ask >>= f
+    where f ((_, _, _, c), T.TargetCard _ d) = return (c == d)
           f _ = return False
 
--- 敵
-targetableOpponent :: Targetable
-targetableOpponent = ask >>= f
-    where f ((_, _, p, _), TargetCard q _) = return (p /= q)
-          f ((_, _, p, _), TargetTeam q) = return (p /= q)
+opponent :: Targetable
+opponent = ask >>= f
+    where f ((_, _, p, _), T.TargetCard q _) = return (p /= q)
+          f ((_, _, p, _), T.TargetTeam q) = return (p /= q)
           f _ = return False
 
--- 味方
-targetableOwn :: Targetable
-targetableOwn = not <$> targetableOpponent
+own :: Targetable
+own = not <$> opponent
 
--- 単体
-targetableOne :: Targetable
-targetableOne = ask >>= f
-    where f (_, TargetCard _ _) = return True
+one :: Targetable
+one = ask >>= f
+    where f (_, T.TargetCard _ _) = return True
           f _ = return False
 
--- チーム
-targetableTeam :: Targetable
-targetableTeam = ask >>= f
-    where f (_, TargetTeam _) = return True
+team :: Targetable
+team = ask >>= f
+    where f (_, T.TargetTeam _) = return True
           f _ = return False
 
--- 全体
-targetableAll :: Targetable
-targetableAll = ask >>= f
-    where f ((_, _, _, _), TargetAll) = return True
+all :: Targetable
+all = ask >>= f
+    where f ((_, _, _, _), T.TargetAll) = return True
           f _ = return False
 
--- 自分
-targetableSelf :: Targetable
-targetableSelf = targetableSamePosition `comb` targetableOwn
-    where comb = liftA2 (&&)
-
--- 生死
-targetableAlive, targetableDead :: Targetable
-targetableAlive = ask >>= f
-    where f ((_, s, p, c), _) = case s ^? playerAccessor p . ix c . hp of
+alive, dead :: Targetable
+alive = ask >>= f
+    where f ((_, s, p, c), _) = case s ^? T.playerAccessor p . ix c . T.hp of
                                      Nothing -> return False
                                      Just hp' -> return (hp' > 0)
-targetableDead = ask >>= f
-    where f ((_, s, p, c), _) = case s ^? playerAccessor p . ix c . hp of
+dead = ask >>= f
+    where f ((_, s, p, c), _) = case s ^? T.playerAccessor p . ix c . T.hp of
                                      Nothing -> return False
                                      Just hp' -> return (hp' <= 0)
 
-targetable :: TargetCapacity -> Targetable
-targetable TargetCapacityOne = targetableOne
-targetable TargetCapacityTeam = targetableTeam
-targetable TargetCapacityAll = targetableAll
-targetable TargetCapacityAlmighty = targetableAlmighty
-targetable TargetCapacityOwn = targetableOwn
-targetable TargetCapacityOpponent = targetableOpponent
-targetable TargetCapacitySelf = targetableSelf
-targetable TargetCapacityAlive = targetableAlive
-targetable TargetCapacityDead = targetableDead
-targetable (TargetCapacityMixAnd a) = foldl comb (return True) (map targetable a)
-    where comb = liftA2 (&&)
-targetable (TargetCapacityMixOr a) = foldl comb (return False) (map targetable a)
-    where comb = liftA2 (||)
+(.&&) :: Targetable -> Targetable -> Targetable
+(.&&) = liftA2 (&&)
+
+targetable :: T.TargetCapacity -> Targetable
+targetable T.TcAlmighty = return True
+targetable T.TcAliveOne = alive .&& one
+targetable T.TcAliveTeam = alive .&& team
+targetable T.TcAliveAll = alive .&& all
+targetable T.TcAliveOpponentOne = alive .&& opponent .&& one
+targetable T.TcAliveOpponentTeam = alive .&& opponent .&& team
+targetable T.TcAliveOwnOne = alive .&& own .&& one
+targetable T.TcAliveOwnTeam = alive .&& own .&& team
+targetable T.TcDeadOne = dead .&& one
+targetable T.TcDeadTeam = dead .&& team
+targetable T.TcDeadAll = dead .&& all
+targetable T.TcDeadOpponentOne = dead .&& opponent .&& one
+targetable T.TcDeadOpponentTeam = dead .&& opponent .&& team
+targetable T.TcDeadOwnOne = dead .&& own .&& one
+targetable T.TcDeadOwnTeam = dead .&& own .&& team
+targetable T.TcSelf = samePosition .&& own

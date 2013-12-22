@@ -13,7 +13,6 @@ import Battle.Mock
 import Battle.TestUtil ()
 import qualified Battle.Types as T
 import qualified Battle.Property as P
-import qualified Battle.TargetCapacity as TC
 
 spec :: Hspec.Spec
 spec =  battleAttackAttackSpec
@@ -29,7 +28,7 @@ battleAttackAttackSpec = prop "1ターン攻撃攻撃" $
             mp = properties ^. T.maxMp
             attack = properties ^. T.attack
             defense = properties ^. T.defense
-            skills =[T.Skill (T.Attack P.factorDenominator) TC.aliveOpponentOne]
+            skills =[T.Skill (T.Attack P.factorDenominator) T.TcAliveOpponentOne]
             cards = [T.Card "testCard" properties skills]
             setting = T.BattleSetting cards cards (Just 1)
             commands = [T.PlayerCommand 0 0 0]
@@ -57,8 +56,8 @@ battleAttackDefenseSpec = prop "1ターン攻撃防御" $
             attack = properties ^. T.attack
             defense = properties ^. T.defense
             defenseFactor = P.factorDenominator * 2
-            attackSkills = [T.Skill (T.Attack P.factorDenominator) TC.aliveOpponentOne]
-            defenseSkills = [T.Skill (T.Defense defenseFactor) TC.self]
+            attackSkills = [T.Skill (T.Attack P.factorDenominator) T.TcAliveOpponentOne]
+            defenseSkills = [T.Skill (T.Defense defenseFactor) T.TcSelf]
             attackCards = [T.Card "testCard" properties attackSkills]
             defenseCards = [T.Card "testCard" properties defenseSkills]
             setting = T.BattleSetting attackCards defenseCards (Just 1)
@@ -87,8 +86,8 @@ battleAttackHealSpec = prop "1ターン攻撃回復" $
             defense = properties ^. T.defense
             magic = properties ^. T.magic
             healFactor = P.factorDenominator
-            attackSkills = [T.Skill (T.Attack P.factorDenominator) TC.aliveOpponentOne]
-            healSkills = [T.Skill (T.Heal healFactor useMp) TC.self]
+            attackSkills = [T.Skill (T.Attack P.factorDenominator) T.TcAliveOpponentOne]
+            healSkills = [T.Skill (T.Heal healFactor useMp) T.TcSelf]
             attackCards = [T.Card "testCard" properties attackSkills]
             healCards = [T.Card "testCard" properties healSkills]
             setting = T.BattleSetting attackCards healCards (Just 1)
@@ -127,7 +126,7 @@ battleBufSpec = prop "攻撃力Buf使用" $
             hp = properties ^. T.maxHp
             mp = properties ^. T.maxMp
             tag = T.AttackTag
-            buffSkills = [T.Skill (T.Buff tag factor turn useMp) TC.self]
+            buffSkills = [T.Skill (T.Buff tag factor turn useMp) T.TcSelf]
             bufCards = [T.Card "testCard" properties buffSkills]
             nullCards = [T.Card "testCard" properties []]
             setting = T.BattleSetting bufCards nullCards (Just 1)
