@@ -73,7 +73,6 @@ import Control.Monad.Trans.RWS (RWS)
 import qualified Data.Aeson as DA (Value(..), FromJSON, ToJSON, parseJSON, toJSON)
 import Data.Aeson.TH (deriveJSON)
 import qualified Data.Attoparsec.Number as N (Number(I))
-import Data.ByteString.Char8 as BS (ByteString)
 
 class (Enum a, Bounded a) => EnumJSON a
 
@@ -134,6 +133,7 @@ data TargetCapacity =
 instance EnumJSON TargetCapacity
 
 data Skill = Skill {
+    _skillName :: String,
     _skillAction :: Action,
     _skillTarget :: TargetCapacity
     } deriving (Show, Eq)
@@ -141,7 +141,7 @@ $(makeFields ''Skill)
 $(deriveJSON (drop (length "_skill")) ''Skill)
 
 data Card = Card {
-    _cardName :: BS.ByteString,
+    _cardName :: String,
     _cardProperties :: PropertySet,
     _cardSkills :: [Skill]
     } deriving (Show, Eq)

@@ -7,7 +7,6 @@ import Test.QuickCheck
 import Control.Monad(replicateM)
 import Control.Applicative
 import Control.Lens hiding (Action, elements)
-import Data.ByteString.Char8 as BS (pack)
 
 import Battle.Types
 
@@ -30,8 +29,8 @@ instance Arbitrary PropertySet where
 instance Arbitrary Card where
     arbitrary = do
         p <- arbitrary
-        n <- (arbitrary :: Gen String)
-        return $ Card (BS.pack n) p []
+        n <- arbitrary
+        return $ Card n p []
 
 instance Arbitrary BattleSetting where
     arbitrary = do

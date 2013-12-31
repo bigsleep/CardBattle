@@ -2,65 +2,24 @@
 {-# LANGUAGE OverlappingInstances #-}
 module Battle.TypeSpec where
 
-import qualified Test.Hspec as H (Spec(..), describe, it, shouldBe)
-import Test.QuickCheck (Positive(..))
-import qualified Test.QuickCheck.Property as P
+import qualified Test.Hspec as H (Spec, describe, it, shouldBe)
 
 import Data.Aeson ((.=))
-import qualified Data.Aeson as DA (Value(..), object, encode, decode, toJSON)
-import qualified Data.Text as T (Text(..), pack, unpack)
-import qualified Data.Text.Encoding as T (encodeUtf8, decodeUtf8)
-import qualified Data.ByteString.Lazy.Char8 as LC (pack, unpack)
-import qualified Data.ByteString.Char8 as BS (pack, unpack)
-import qualified Codec.Binary.UTF8.String as U8 (encodeString, decodeString)
+import qualified Data.Aeson as DA (Value(..), object, decode, toJSON, FromJSON, ToJSON)
+import qualified Data.ByteString.Lazy as LC (pack)
+import qualified Codec.Binary.UTF8.String as UTF8 (encode)
 
 import Battle.Types
 
 spec :: H.Spec
 spec = do
-    H.describe "TypeSpec" $ do
+    testJSON "BattleState" battleStateJSON expectedBattleState (DA.object ["First" .= ([] :: [DA.Value]), "Second" .= ([] :: [DA.Value]), "OneTurnEffects" .= ([] :: [DA.Value]), "Effects" .= ([] :: [DA.Value]), "Turn" .= (1 :: Int)])
 
-    H.it "JSON to BattleState" $ do
-        let result = DA.decode . LC.pack $ battleStateJSON
-        let expected = Just expectedBattleState
-        result `H.shouldBe` expected
+    testJSON "Card" cardJSON expectedCard (DA.object ["Name" .= DA.String "あああ", "Properties" .= DA.object ["MaxHp" .= (0 :: Int), "MaxMp" .= (0 :: Int), "Attack" .= (0 :: Int), "Defense" .= (0 :: Int), "Speed" .= (0 :: Int), "Magic" .= (0 :: Int)], "Skills" .= ([] :: [DA.Value])])
 
-    H.it "BattleState to JSON" $ do
-        let result = DA.toJSON expectedBattleState
-        let expected = DA.object ["First" .= ([] :: [DA.Value]), "Second" .= ([] :: [DA.Value]), "OneTurnEffects" .= ([] :: [DA.Value]), "Effects" .= ([] :: [DA.Value]), "Turn" .= (1 :: Int)]
-        result `H.shouldBe` expected
+    testJSON "Skill" skillJSON expectedSkill (DA.object ["Name" .= DA.String "skill", "Action" .= DA.object ["Attack" .= (100 :: Int)], "Target" .= (0 :: Int)])
 
-    H.it "JSON to Card" $ do
-        let result = DA.decode . LC.pack $ cardJSON :: Maybe Card
-        let expected = Just expectedCard
-        result `H.shouldBe` expected
-
-    H.it "Card to JSON" $ do
-        let result = DA.toJSON expectedCard
-        let expected = DA.object ["Name" .= DA.String (T.decodeUtf8 . BS.pack $ "あああ"), "Properties" .= DA.object ["MaxHp" .= (0 :: Int), "MaxMp" .= (0 :: Int), "Attack" .= (0 :: Int), "Defense" .= (0 :: Int), "Speed" .= (0 :: Int), "Magic" .= (0 :: Int)], "Skills" .= ([] :: [DA.Value])]
-        result `H.shouldBe` expected
-
-
-    H.it "JSON to Skill" $ do
-        let result = DA.decode . LC.pack $ skillJSON :: Maybe Skill
-        let expected = Just expectedSkill
-        result `H.shouldBe` expected
-
-    H.it "Skill to JSON" $ do
-        let result = DA.toJSON expectedSkill
-        let expected = DA.object ["Action" .= DA.object ["Attack" .= (100 :: Int)], "Target" .= (0 :: Int)]
-        result `H.shouldBe` expected
-
-    H.it "JSON to BattleEffect" $ do
-        let result = DA.decode . LC.pack $ battleEffectJSON
-        let expected = Just expectedBattleEffect
-        result `H.shouldBe` expected
-
-    H.it "BattleEffect to JSON" $ do
-        let result = DA.toJSON expectedBattleEffect
-        let expected = DA.object ["Target" .= [(0 :: Int), (0 :: Int)], "Property" .= (0 :: Int), "Factor" .= (100 :: Int)]
-        result `H.shouldBe` expected
-
+    testJSON "BattleEffect" battleEffectJSON expectedBattleEffect (DA.object ["Target" .= [(0 :: Int), (0 :: Int)], "Property" .= (0 :: Int), "Factor" .= (100 :: Int)])
 
 
 battleStateJSON :: String
@@ -73,16 +32,29 @@ cardJSON :: String
 cardJSON = "{\"Name\":\"あああ\", \"Properties\":{\"MaxHp\":0,\"MaxMp\":0,\"Attack\":0,\"Defense\":0,\"Speed\":0,\"Magic\":0}, \"Skills\":[]}"
 
 expectedCard :: Card
-expectedCard = (Card (BS.pack "あああ") (PropertySet 0 0 0 0 0 0) [])
+expectedCard = (Card "あああ" (PropertySet 0 0 0 0 0 0) [])
 
 skillJSON :: String
-skillJSON = "{\"Action\":{\"Attack\":100},\"Target\":0}}"
+skillJSON = "{\"Name\":\"skill\",\"Action\":{\"Attack\":100},\"Target\":0}}"
 
 expectedSkill :: Skill
-expectedSkill = Skill (Attack 100) TcAlmighty
+expectedSkill = Skill "skill" (Attack 100) TcAlmighty
 
 battleEffectJSON :: String
 battleEffectJSON = "{\"Target\":[0,0],\"Property\":0,\"Factor\":100}"
 
 expectedBattleEffect :: BattleEffect
 expectedBattleEffect = BattleEffect (FirstPlayer, 0) MaxHpTag 100
+
+testJSON :: (DA.FromJSON a, DA.ToJSON a, Show a, Eq a) => String -> String -> a -> DA.Value -> H.Spec
+testJSON name str x json = do
+    H.it (name ++ ": decode") $ do
+        let result = DA.decode . LC.pack . UTF8.encode $ str
+        let expected = Just x
+        result `H.shouldBe` expected
+
+    H.it (name ++ ": encode") $ do
+        let result = DA.toJSON x
+        let expected = json
+        result `H.shouldBe` expected
+

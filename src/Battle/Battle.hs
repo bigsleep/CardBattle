@@ -66,7 +66,7 @@ toBattleCommand :: T.Player -> T.PlayerCommand -> BattleMachine T.BattleCommand
 toBattleCommand p (T.PlayerCommand c s t)  = do
     (setting', state') <- get
     card' <- fromJust $ setting' ^? T.playerAccessor p . ix c
-    T.Skill a tc <- fromJust $ card' ^? T.skills . ix s
+    T.Skill _ a tc <- fromJust $ card' ^? T.skills . ix s
     let targets = enumerateTargets setting' state' p c (targetable tc)
     target' <- fromJust $ targets ^? ix t
     return $ T.BattleCommand p c a target'
@@ -146,7 +146,7 @@ enumerateActionChoice p c q s = do
     where executables = filter (canPerform s . (^. T.action)) (q ^. T.skills)
           withIndex = zip [0..(length executables - 1)] executables
           actionChoices e a = map (apply e a) withIndex
-          apply e x (i, T.Skill a t) = T.ActionChoice i a (enumerateTargets e x p c (targetable t))
+          apply e x (i, T.Skill _ a t) = T.ActionChoice i a (enumerateTargets e x p c (targetable t))
           filterEmpty = filter (\x -> x ^. T.targets /= [])
 
 activeEffect :: (T.BattleEffect, Int) -> BattleMachine Bool
