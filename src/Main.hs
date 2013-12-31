@@ -1,3 +1,4 @@
-import Battle.Battle
+import CheapCUI
 
-main = putStrLn "hello"
+main :: IO ()
+main = runBattleOnCUI

@@ -23,6 +23,7 @@ executable CardBattle
                   , text
                   , bytestring
                   , utf8-string
+                  , random
                   , lens >= 3.9 && <= 3.10
                   , free >= 3.4 && <= 4.2
                   , aeson >= 0.4.0.0 && <= 0.6.1.0
@@ -40,6 +41,7 @@ test-suite spec
                   , text
                   , bytestring
                   , utf8-string
+                  , random
                   , lens >= 3.9 && <= 3.10
                   , free >= 3.4 && <= 4.2
                   , aeson >= 0.4.0.0 && <= 0.6.1.0

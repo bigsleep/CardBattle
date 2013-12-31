@@ -1,0 +1,48 @@
+{
+    "First": [
+        {
+            "Name": "ほげ",
+            "Properties": {
+                "MaxHp": 100,
+                "MaxMp": 100,
+                "Attack": 20,
+                "Defense": 5,
+                "Speed": 10,
+                "Magic": 5
+            },
+            "Skills": [
+                {
+                    "Name": "こうげき",
+                    "Action": {
+                        "Attack": 100
+                    },
+                    "Target": 4
+                }
+            ]
+        }
+    ],
+    "Second": [
+        {
+            "Name": "ほげ",
+            "Properties": {
+                "MaxHp": 100,
+                "MaxMp": 100,
+                "Attack": 20,
+                "Defense": 5,
+                "Speed": 10,
+                "Magic": 5
+            },
+            "Skills": [
+                {
+                    "Name": "こうげき",
+                    "Action": {
+                        "Attack": 100
+                    },
+                    "Target": 4
+                }
+            ]
+        }
+
+    ],
+    "MaxTurn": 1
+}
