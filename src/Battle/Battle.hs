@@ -15,7 +15,7 @@ import Control.Lens ((^.), (.~), (&), (^?), (%~), ix, _2)
 import Control.Monad (forM, forM_, filterM, liftM, when)
 import Control.Monad.Error (runErrorT)
 import Control.Monad.State.Class (get, put)
-import Control.Monad.Writer.Class (tell)
+import Control.Monad.Writer.Class (tell, listen)
 import Control.Monad.Trans.RWS (runRWS)
 
 battle :: BattleMachine ()
@@ -75,7 +75,9 @@ toBattleCommand p (T.PlayerCommand c s t)  = do
 
 battleTurn :: BattleMachine ()
 battleTurn = do
-    t <- liftM (^. _2 . T.turn) get
+    (_, s) <- get
+    let t = s ^. T.turn
+    outputBattleState s
     xs <- enumerateCommandChoice T.FirstPlayer >>= inputPlayerCommands t T.FirstPlayer
     ys <- enumerateCommandChoice T.SecondPlayer >>= inputPlayerCommands t T.SecondPlayer
     xs' <- mapM (toBattleCommand T.FirstPlayer) xs

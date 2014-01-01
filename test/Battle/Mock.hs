@@ -40,6 +40,8 @@ runMockIO (Free (InputPlayerCommands t p _ f)) = do
     let c = (scenario ^. playerAccessor p) !! t
     runMockIO (f c)
 runMockIO (Free (OutputBattleState _ c)) = runMockIO c
+runMockIO (Free (OutputTurnResult _ c)) = runMockIO c
+runMockIO (Free (OutputBattleResult _ c)) = runMockIO c
 runMockIO (Free (OutputMessage _ c)) = runMockIO c
 runMockIO (Free (OutputError s)) = return . Left $ s
 

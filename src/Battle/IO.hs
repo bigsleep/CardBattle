@@ -5,11 +5,11 @@
 module Battle.IO
     ( BattleIO(..)
     , BattleMachine
-    , createInput
-    , createOutput
     , loadSetting
     , inputPlayerCommands
     , outputBattleState
+    , outputTurnResult
+    , outputBattleResult
     , outputMessage
     , outputError
     , checkInputCommands
@@ -28,6 +28,8 @@ data BattleIO a =
     LoadSetting (T.BattleSetting -> a) |
     InputPlayerCommands Int T.Player [T.CommandChoice] ([T.PlayerCommand] -> a) |
     OutputBattleState T.BattleState a |
+    OutputTurnResult T.BattleLog a |
+    OutputBattleResult T.BattleState a |
     OutputMessage String a |
     OutputError String
 
@@ -35,6 +37,8 @@ instance Functor BattleIO where
     fmap f (LoadSetting g) = LoadSetting (f . g)
     fmap f (InputPlayerCommands t p cs g) = InputPlayerCommands t p cs (f . g)
     fmap f (OutputBattleState s c) = OutputBattleState s (f c)
+    fmap f (OutputTurnResult s c) = OutputTurnResult s (f c)
+    fmap f (OutputBattleResult s c) = OutputBattleResult s (f c)
     fmap f (OutputMessage s c) = OutputMessage s (f c)
     fmap _ (OutputError s) = OutputError s
 
@@ -59,6 +63,12 @@ inputPlayerCommands t p cs = createInput (InputPlayerCommands t p cs) >>= checkI
 
 outputBattleState :: T.BattleState -> BattleMachine ()
 outputBattleState = createOutput OutputBattleState
+
+outputTurnResult :: T.BattleLog -> BattleMachine ()
+outputTurnResult = createOutput OutputTurnResult
+
+outputBattleResult :: T.BattleState -> BattleMachine ()
+outputBattleResult = createOutput OutputBattleResult
 
 outputMessage :: String -> BattleMachine ()
 outputMessage = createOutput OutputMessage

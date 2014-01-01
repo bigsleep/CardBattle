@@ -45,6 +45,12 @@ runCUI (Free (OutputBattleState s c)) = do
     lift . putStrLn $ "state: " ++ show s ++ "\n"
     runCUI c
 
+runCUI (Free (OutputTurnResult log c)) = do
+    runCUI c
+
+runCUI (Free (OutputBattleResult s c)) = do
+    runCUI c
+
 runCUI (Free (OutputMessage m c)) = (lift . putStrLn $ m) >> runCUI c
 
 runCUI (Free (OutputError s)) = lift . putStrLn $ ("エラー: " ++ s)
