@@ -16,7 +16,7 @@
                     "Action": {
                         "Attack": 100
                     },
-                    "Target": 4
+                    "Target": 7
                 },
                 {
                     "Name": "回復",
@@ -50,21 +50,21 @@
                     "Action": {
                         "Attack": 100
                     },
-                    "Target": 4
+                    "Target": 7
                 },
                 {
                     "Name": "全体回復",
                     "Action": {
                         "Heal": [80, 16]
                     },
-                    "Target": 7
+                    "Target": 13
                 },
                 {
                     "Name": "最大HP2倍",
                     "Action": {
                         "Buff" : [0, 200, 10, 40]
                     },
-                    "Target": 7
+                    "Target": 13
                 }
             ]
         }
@@ -86,14 +86,14 @@
                     "Action": {
                         "Attack": 100
                     },
-                    "Target": 4
+                    "Target": 7
                 },
                 {
                     "Name": "防御",
                     "Action": {
                         "Defense": 200
                     },
-                    "Target": 15
+                    "Target": 14
                 }
             ]
         },
@@ -113,21 +113,21 @@
                     "Action": {
                         "Attack": 100
                     },
-                    "Target": 4
+                    "Target": 7
                 },
                 {
-                    "Name": "最大HP2倍",
+                    "Name": "最大HP5倍",
                     "Action": {
                         "Buff" : [0, 500, 10, 40]
                     },
-                    "Target": 7
+                    "Target": 13
                 },
                 {
                     "Name": "回復",
                     "Action": {
-                        "Heal": [100, 0]
+                        "Heal": [100, 1]
                     },
-                    "Target": 1
+                    "Target": 11
                 }
             ]
         }

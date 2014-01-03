@@ -86,18 +86,17 @@ dead = ask >>= f
 
 targetable :: T.TargetCapacity -> Targetable
 targetable T.TcAlmighty = return True
+targetable T.TcOne = one
 targetable T.TcAliveOne = alive .&& one
-targetable T.TcAliveTeam = alive .&& team
-targetable T.TcAliveAll = alive .&& all
-targetable T.TcAliveOpponentOne = alive .&& opponent .&& one
-targetable T.TcAliveOpponentTeam = alive .&& opponent .&& team
-targetable T.TcAliveOwnOne = alive .&& own .&& one
-targetable T.TcAliveOwnTeam = alive .&& own .&& team
 targetable T.TcDeadOne = dead .&& one
-targetable T.TcDeadTeam = dead .&& team
-targetable T.TcDeadAll = dead .&& all
+targetable T.TcTeam = team
+targetable T.TcAll = all
+targetable T.TcOpponentOne = opponent .&& one
+targetable T.TcAliveOpponentOne = alive .&& opponent .&& one
 targetable T.TcDeadOpponentOne = dead .&& opponent .&& one
-targetable T.TcDeadOpponentTeam = dead .&& opponent .&& team
+targetable T.TcOpponentTeam = opponent .&& team
+targetable T.TcOwnOne = opponent .&& one
+targetable T.TcAliveOwnOne = alive .&& own .&& one
 targetable T.TcDeadOwnOne = dead .&& own .&& one
-targetable T.TcDeadOwnTeam = dead .&& own .&& team
+targetable T.TcOwnTeam = own .&& team
 targetable T.TcSelf = samePosition .&& own

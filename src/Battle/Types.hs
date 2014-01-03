@@ -115,20 +115,19 @@ $(deriveJSON id ''Action)
 
 data TargetCapacity =
     TcAlmighty |
+    TcOne |
     TcAliveOne |
-    TcAliveTeam |
-    TcAliveAll |
-    TcAliveOpponentOne |
-    TcAliveOpponentTeam |
-    TcAliveOwnOne |
-    TcAliveOwnTeam |
     TcDeadOne |
-    TcDeadTeam |
-    TcDeadAll |
+    TcTeam |
+    TcAll |
+    TcOpponentOne |
+    TcAliveOpponentOne |
     TcDeadOpponentOne |
-    TcDeadOpponentTeam |
+    TcOpponentTeam |
+    TcOwnOne |
+    TcAliveOwnOne |
     TcDeadOwnOne |
-    TcDeadOwnTeam |
+    TcOwnTeam |
     TcSelf deriving (Show, Eq, Ord, Enum, Bounded)
 instance EnumJSON TargetCapacity
 
