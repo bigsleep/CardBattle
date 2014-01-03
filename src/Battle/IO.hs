@@ -15,6 +15,7 @@ module Battle.IO
     , checkInputCommands
     ) where
 
+import Data.List (find)
 import Control.Monad (forM_, when)
 import Control.Monad.Error (MonadError, throwError, catchError)
 import Control.Monad.Trans (lift)
@@ -85,9 +86,9 @@ checkInputCommands cs ps = do
            check (a, b) = if a ^. T.cardIndex /= b ^. T.cardIndex
                              then outputError $ "in checkInputCommand. invalid cardIndex." ++ show cs ++ show ps
                              else checkAction a b
-           checkAction a b = case a ^? T.actions . ix (b ^. T.skillIndex) of
+           checkAction a b = case find (\x -> x ^. T.skillIndex == b ^. T.skillIndex) (a ^. T.actions) of
+                                  Just y -> checkTarget (y ^. T.targets) (b ^. T.targetIndex)
                                   Nothing -> outputError $ "in checkInputCommand. invalid skillIndex." ++ show cs ++ show ps
-                                  Just x -> checkTarget (x ^. T.targets) (b ^. T.targetIndex)
            checkTarget a b = case a ^? ix b of
                                   Nothing -> outputError $ "in checkInputCommand. invalid targetIndex." ++ show cs ++ show ps
                                   Just _ -> return ()

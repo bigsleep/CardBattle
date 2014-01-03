@@ -61,3 +61,16 @@ spec = do
             then return Prop.succeeded
             else return Prop.failed {Prop.reason = message}
 
+
+    prop "ターゲット列挙、相手チームで生きてるカード1体" $ \player' setting' -> do
+        let state' = B.initializeBattleState setting' & T.playerAccessor (T.opponentPlayer player') %~ map (& T.hp .~ 0) :: T.BattleState
+        let cardNum = length $ setting' ^. (T.playerAccessor player')
+        card' <- choose (0, cardNum - 1)
+        let targetable' = Target.targetable T.TcAliveOpponentOne
+        let test = Target.enumerateTargets setting' state' player' card' targetable'
+        let message = printf "player: %s\ncard: %d\ncardNum: %d\nexpected: []\nresult: %s\nstate: %s\n"
+                      (show player') card' cardNum (show test) (show state')
+        if test == []
+            then return Prop.succeeded
+            else return Prop.failed {Prop.reason = message}
+

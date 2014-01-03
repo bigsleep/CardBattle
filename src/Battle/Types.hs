@@ -62,7 +62,6 @@ module Battle.Types
     , skillIndex
     , targetIndex
     , player
-    , card
     , HasFirst
     , HasSecond
     ) where
@@ -192,7 +191,8 @@ $(deriveJSON (drop (length "_battlecommand")) ''PlayerCommand)
 
 data BattleCommand = BattleCommand {
     _battlecommandPlayer :: Player,
-    _battlecommandCard :: Int,
+    _battlecommandCardIndex :: Int,
+    _battlecommandSkillIndex :: Int,
     _battlecommandAction :: Action,
     _battlecommandTarget :: Target
     } deriving (Show, Eq)

@@ -30,7 +30,7 @@ enumerateTargets e s p c x = filtered
 -- 対象をカードとして列挙
 enumerateAsCards :: T.BattleSetting -> T.Target -> [(T.Player, Int)]
 enumerateAsCards _ (T.TargetCard p c) = [(p, c)]
-enumerateAsCards e (T.TargetTeam p) = map (\c -> (p, c)) [0..length']
+enumerateAsCards e (T.TargetTeam p) = map (\c -> (p, c)) [0..(length' - 1)]
     where length' = length $ e ^. T.playerAccessor p
 enumerateAsCards e T.TargetAll = enumerate T.FirstPlayer ++ enumerate T.SecondPlayer
     where enumerate p = enumerateAsCards e (T.TargetTeam p)
@@ -69,13 +69,17 @@ all = ask >>= f
 
 alive, dead :: Targetable
 alive = ask >>= f
-    where f ((_, s, p, c), _) = case s ^? T.playerAccessor p . ix c . T.hp of
-                                     Nothing -> return False
-                                     Just hp' -> return (hp' > 0)
+    where f (_, T.TargetAll) = return True
+          f (_, T.TargetTeam _) = return True
+          f ((_, s, _, _), T.TargetCard p c) = case s ^? T.playerAccessor p . ix c . T.hp of
+                                                    Nothing -> return False
+                                                    Just hp -> return (hp > 0)
 dead = ask >>= f
-    where f ((_, s, p, c), _) = case s ^? T.playerAccessor p . ix c . T.hp of
-                                     Nothing -> return False
-                                     Just hp' -> return (hp' <= 0)
+    where f (_, T.TargetAll) = return True
+          f (_, T.TargetTeam _) = return True
+          f ((_, s, _, _), T.TargetCard p c) = case s ^? T.playerAccessor p . ix c . T.hp of
+                                                    Nothing -> return False
+                                                    Just hp -> return (hp <= 0)
 
 (.&&) :: Targetable -> Targetable -> Targetable
 (.&&) = liftA2 (&&)

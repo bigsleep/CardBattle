@@ -23,6 +23,8 @@ battle = do
     setting' <- loadSetting
     put (setting', initializeBattleState setting')
     whileM_ isRunning battleTurn
+    (_, s) <- get
+    outputBattleResult s
     where whileM_ :: (Monad m) => m Bool -> m () -> m ()
           whileM_ a b = a >>= \x -> when x (b >> whileM_ a b)
 
@@ -59,7 +61,7 @@ sortBattleCommands cs = do
     speedFactors <- forM cs currentSpeed
     let zipped = zip speedFactors cs
     return $ map snd (sortWith fst zipped)
-    where currentSpeed (T.BattleCommand p c a _) = currentProperties p c >>= \q -> return (a, q ^. T.speed)
+    where currentSpeed (T.BattleCommand p c _ a _) = currentProperties p c >>= \q -> return (a, q ^. T.speed)
 
 toBattleCommand :: T.Player -> T.PlayerCommand -> BattleMachine T.BattleCommand
 toBattleCommand p (T.PlayerCommand c s t)  = do
@@ -68,7 +70,7 @@ toBattleCommand p (T.PlayerCommand c s t)  = do
     T.Skill _ a tc <- fromJust $ card' ^? T.skills . ix s
     let targets = enumerateTargets setting' state' p c (targetable tc)
     target' <- fromJust $ targets ^? ix t
-    return $ T.BattleCommand p c a target'
+    return $ T.BattleCommand p c s a target'
     where fromJust (Just a) = return a
           fromJust Nothing = outputError "in toBattleCommand. fromJust: Nothing"
 
@@ -85,7 +87,9 @@ battleTurn = do
     expired <- consumeTurn
     cutoffHpMp
     (_, state) <- get
-    tell [T.BattleLog state commandLogs expired]
+    let l = T.BattleLog state commandLogs expired
+    outputTurnResult l
+    tell [l]
 
 execTurn :: [T.BattleCommand] -> T.BattleTurn [T.BattleCommandLog]
 execTurn cs = do
@@ -96,11 +100,11 @@ execTurn cs = do
     return logs
 
 execCommand :: T.BattleCommand -> T.BattleTurn T.BattleCommandLog
-execCommand (T.BattleCommand p c a t) = do
+execCommand (T.BattleCommand p c q a t) = do
     state <- get
     card <- getCardState state (p, c)
     exec (alive card) (canPerform card a)
-    where command = T.BattleCommand p c a t
+    where command = T.BattleCommand p c q a t
           alive s = s ^. T.hp > 0
           exec :: Bool -> Bool -> T.BattleTurn T.BattleCommandLog
           exec False _ = return $ T.BattleCommandLog command [T.FailureBecauseDeath]
@@ -146,13 +150,13 @@ enumerateCommandChoice p = do
 
 
 enumerateActionChoice :: T.Player -> Int -> T.Card -> T.CardState -> BattleMachine [T.ActionChoice]
-enumerateActionChoice p c q s = do
-    (setting', state') <- get
-    return . filterEmpty $ actionChoices setting' state'
-    where executables = filter (canPerform s . (^. T.action)) (q ^. T.skills)
+enumerateActionChoice player cardIndex card cardState = do
+    (setting, state) <- get
+    return . filterEmpty $ actionChoices setting state
+    where executables = filter (canPerform cardState . (^. T.action)) (card ^. T.skills)
           withIndex = zip [0..(length executables - 1)] executables
-          actionChoices e a = map (apply e a) withIndex
-          apply e x (i, T.Skill _ a t) = T.ActionChoice i a (enumerateTargets e x p c (targetable t))
+          actionChoices e s = map (apply e s) withIndex
+          apply e s (i, T.Skill _ a t) = T.ActionChoice i a (enumerateTargets e s player cardIndex (targetable t))
           filterEmpty = filter (\x -> x ^. T.targets /= [])
 
 activeEffect :: (T.BattleEffect, Int) -> BattleMachine Bool

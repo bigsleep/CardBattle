@@ -12,18 +12,66 @@
             },
             "Skills": [
                 {
-                    "Name": "こうげき",
+                    "Name": "攻撃",
                     "Action": {
                         "Attack": 100
                     },
                     "Target": 4
+                },
+                {
+                    "Name": "回復",
+                    "Action": {
+                        "Heal": [100, 10]
+                    },
+                    "Target": 1
+                },
+                {
+                    "Name": "攻撃力2倍",
+                    "Action": {
+                        "Buff" : [2, 200, 2, 20]
+                    },
+                    "Target": 1
+                }
+            ]
+        },
+        {
+            "Name": "あああ",
+            "Properties": {
+                "MaxHp": 100,
+                "MaxMp": 200,
+                "Attack": 20,
+                "Defense": 1,
+                "Speed": 100,
+                "Magic": 200
+            },
+            "Skills": [
+                {
+                    "Name": "攻撃",
+                    "Action": {
+                        "Attack": 100
+                    },
+                    "Target": 4
+                },
+                {
+                    "Name": "全体回復",
+                    "Action": {
+                        "Heal": [80, 16]
+                    },
+                    "Target": 7
+                },
+                {
+                    "Name": "最大HP2倍",
+                    "Action": {
+                        "Buff" : [0, 200, 10, 40]
+                    },
+                    "Target": 7
                 }
             ]
         }
     ],
     "Second": [
         {
-            "Name": "ほげ",
+            "Name": "ふが",
             "Properties": {
                 "MaxHp": 100,
                 "MaxMp": 100,
@@ -34,15 +82,55 @@
             },
             "Skills": [
                 {
-                    "Name": "こうげき",
+                    "Name": "攻撃",
                     "Action": {
                         "Attack": 100
                     },
                     "Target": 4
+                },
+                {
+                    "Name": "防御",
+                    "Action": {
+                        "Defense": 200
+                    },
+                    "Target": 15
+                }
+            ]
+        },
+        {
+            "Name": "♨ ",
+            "Properties": {
+                "MaxHp": 100,
+                "MaxMp": 200,
+                "Attack": 10,
+                "Defense": 20,
+                "Speed": 100,
+                "Magic": 400
+            },
+            "Skills": [
+                {
+                    "Name": "攻撃",
+                    "Action": {
+                        "Attack": 100
+                    },
+                    "Target": 4
+                },
+                {
+                    "Name": "最大HP2倍",
+                    "Action": {
+                        "Buff" : [0, 500, 10, 40]
+                    },
+                    "Target": 7
+                },
+                {
+                    "Name": "回復",
+                    "Action": {
+                        "Heal": [100, 0]
+                    },
+                    "Target": 1
                 }
             ]
         }
-
     ],
-    "MaxTurn": 1
+    "MaxTurn": 5
 }

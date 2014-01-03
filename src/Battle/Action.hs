@@ -26,10 +26,10 @@ execAction p c (T.Attack f) t = do
     let attack' = (prop ^. T.attack * f) `div` P.factorDenominator
     let ts = Target.enumerateAsCards setting' t
     logs <- forM ts (attackOne attack')
-    return (failureIfEmpty logs)
+    return (failureIfEmpty . concat $ logs)
 
 -- Defense
-execAction p c (T.Defense f) t = do
+execAction _ _ (T.Defense f) t = do
     setting <- ask
     state <- get
     ts <- filterM (isCardAlive state) (Target.enumerateAsCards setting t)
@@ -51,7 +51,7 @@ execAction p c (T.Heal a b) t = do
     let ts = Target.enumerateAsCards setting' t
     logs <- forM ts (healOne healHp)
     l <- consumeMp p c b
-    return (l : logs)
+    return (l : (failureIfEmpty logs))
 
 
 
@@ -70,22 +70,24 @@ execAction p c (T.Buff q f a b) t = do
             return (l : changes)
     where alive s (tp, tc) = case s ^? T.playerAccessor tp . ix tc of
                                   Just cstate -> return $ cstate ^. T.hp > 0
-                                  Nothing -> throwError "in execAction. list index out of range."
+                                  Nothing -> throwError $ "in execAction. list index out of range. player: " ++ show tp ++ " card: " ++ show tc
 
 
 -- 単体攻撃
-attackOne :: Int -> (T.Player, Int) -> T.BattleTurn T.ActionResult
-attackOne attack' (tp, tc) = do
-    state' <- get
-    hp' <- getHp (state' ^? (T.playerAccessor tp . ix tc))
-    if hp' <= 0
-        then return T.ActionFailure
+attackOne :: Int -> (T.Player, Int) -> T.BattleTurn [T.ActionResult]
+attackOne attack (tp, tc) = do
+    state <- get
+    hp <- getHp (state ^? (T.playerAccessor tp . ix tc))
+    if hp <= 0
+        then return [T.ActionFailure]
         else do
             prop <- P.currentProperties tp tc
-            let defense' = prop ^. T.defense
-            let damage = min (max 1 (attack' - defense')) hp'
-            put $ state' & (T.playerAccessor tp . ix tc . T.hp) .~ (hp' - damage)
-            return (T.StateChange (tp, tc) (T.CardState (- damage) 0))
+            let defense = prop ^. T.defense
+            let damage = min (max 1 (attack - defense)) hp
+            put $ state & (T.playerAccessor tp . ix tc . T.hp) .~ (hp - damage)
+            if damage == hp
+                then return [T.StateChange (tp, tc) (T.CardState (- damage) 0), T.Death (tp, tc)]
+                else return [T.StateChange (tp, tc) (T.CardState (- damage) 0)]
     where getHp (Just d) = return (d ^. T.hp)
           getHp Nothing = throwError "in attackOne. list index out of range."
 
@@ -93,15 +95,15 @@ attackOne attack' (tp, tc) = do
 -- 単体回復
 healOne :: Int -> (T.Player, Int) -> T.BattleTurn T.ActionResult
 healOne h (tp, tc) = do
-    state' <- get
-    hp' <- getHp (state' ^? (T.playerAccessor tp . ix tc))
-    if hp' <= 0
+    state <- get
+    hp <- getHp (state ^? (T.playerAccessor tp . ix tc))
+    if hp <= 0
         then return T.ActionFailure
         else do
             prop <- P.currentProperties tp tc
-            let maxHp' = prop ^. T.maxHp
-            let incHp = max 0 (min h (maxHp' - hp'))
-            put $ state' & (T.playerAccessor tp . ix tc . T.hp) .~ (hp' + incHp)
+            let maxHp = prop ^. T.maxHp
+            let incHp = max 0 (min h (maxHp - hp))
+            put $ state & (T.playerAccessor tp . ix tc . T.hp) .~ (hp + incHp)
             return (T.StateChange (tp, tc) (T.CardState incHp 0))
     where getHp (Just d) = return (d ^. T.hp)
           getHp Nothing = throwError "in healOne. list index out of range."

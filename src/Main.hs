@@ -1,4 +1,4 @@
-import CheapCUI
+import CheapCUI (runBattleOnCUI)
 
 main :: IO ()
-main = runBattleOnCUI
+main = putStrLn "* バトル開始" >> runBattleOnCUI >> putStrLn "* バトル終了"
