@@ -52,7 +52,7 @@ spec = do
         let cardNum = length $ setting' ^. (T.playerAccessor player')
         card' <- choose (0, cardNum - 1)
         let or' = liftA2 (||)
-        let targetable' = Target.targetable T.TcSelf `or'`  Target.targetable T.TcAliveOpponentTeam
+        let targetable' = Target.targetable T.TcSelf `or'`  Target.targetable T.TcOpponentTeam
         let test = Target.enumerateTargets setting' state' player' card' targetable'
         let ans = [T.TargetCard player' card', T.TargetTeam $ if player' == T.FirstPlayer then T.SecondPlayer else T.FirstPlayer]
         let message = printf "player: %s\ncard: %d\ncardNum: %d\nexpected: %s\nresult: %s\n"
