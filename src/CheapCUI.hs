@@ -180,7 +180,7 @@ outputActionResult _ T.ActionFailure =
 
 outputCardState :: (Int, T.Card, T.CardState) -> IO ()
 outputCardState (i, c, s) = do
-    printf "カード%d [%s] \t\t| HP: %d\tMP: %d |\n" i (toS c) (s ^. T.hp) (s ^. T.mp)
+    printf "カード%d [%s]\t| HP: %3d  MP: %3d |\n" i (toS c) (s ^. T.hp) (s ^. T.mp)
 
 readInput :: (Eq a, Read a) => [a] -> IO a
 readInput xs = do
