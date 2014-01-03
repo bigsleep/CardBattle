@@ -11,11 +11,11 @@ import Battle.Property
 
 import Prelude hiding (lookup)
 import GHC.Exts(sortWith)
-import Control.Lens ((^.), (.~), (&), (^?), (%~), ix, _2)
-import Control.Monad (forM, forM_, filterM, liftM, when)
+import Control.Lens ((^.), (.~), (&), (^?), (%~), ix, _1)
+import Control.Monad (forM, when, foldM)
 import Control.Monad.Error (runErrorT)
-import Control.Monad.State.Class (get, put)
-import Control.Monad.Writer.Class (tell, listen)
+import Control.Monad.State (get, put)
+import Control.Monad.Writer (tell)
 import Control.Monad.Trans.RWS (runRWS)
 
 battle :: BattleMachine ()
@@ -46,13 +46,12 @@ isRunning = do
 
 toBattleMachine :: T.BattleTurn a -> BattleMachine a
 toBattleMachine x = do
-    (setting', state') <- get
-    let (r, s, l) = runRWS (runErrorT x) setting' state'
+    (setting, state) <- get
+    let (r, s, _) = runRWS (runErrorT x) setting state
     case r of
         Left m -> outputError m
         Right m -> do
-            put (setting', s)
-            tell [T.BattleLog s l []]
+            put (setting, s)
             return m
 
 sortBattleCommands :: [T.BattleCommand] -> T.BattleTurn [T.BattleCommand]
@@ -82,27 +81,31 @@ battleTurn = do
     ys <- enumerateCommandChoice T.SecondPlayer >>= inputPlayerCommands t T.SecondPlayer
     xs' <- mapM (toBattleCommand T.FirstPlayer) xs
     ys' <- mapM (toBattleCommand T.SecondPlayer) ys
-    toBattleMachine $ execTurn (xs' ++ ys')
-    consumeTurn
+    commandLogs <- toBattleMachine $ execTurn (xs' ++ ys')
+    expired <- consumeTurn
     cutoffHpMp
+    (_, state) <- get
+    tell [T.BattleLog state commandLogs expired]
 
-execTurn :: [T.BattleCommand] -> T.BattleTurn ()
+execTurn :: [T.BattleCommand] -> T.BattleTurn [T.BattleCommandLog]
 execTurn cs = do
     sorted <- sortBattleCommands cs
-    forM_ sorted execCommand
+    logs <- forM sorted execCommand
     s <- get
     put $ s & T.oneTurnEffects .~ []
+    return logs
 
-execCommand :: T.BattleCommand -> T.BattleTurn ()
+execCommand :: T.BattleCommand -> T.BattleTurn T.BattleCommandLog
 execCommand (T.BattleCommand p c a t) = do
-    state' <- get
-    card' <- getCardState state' (p, c)
-    exec (alive card') (canPerform card' a)
-    where alive s = s ^. T.hp > 0
-          exec :: Bool -> Bool -> T.BattleTurn ()
-          exec False _ = tell [T.BattleCommandLog (T.BattleCommand p c a t) [T.FailureBecauseDeath]]
-          exec True False = tell [T.BattleCommandLog (T.BattleCommand p c a t) [T.Underqualified]]
-          exec True True = execAction p c a t
+    state <- get
+    card <- getCardState state (p, c)
+    exec (alive card) (canPerform card a)
+    where command = T.BattleCommand p c a t
+          alive s = s ^. T.hp > 0
+          exec :: Bool -> Bool -> T.BattleTurn T.BattleCommandLog
+          exec False _ = return $ T.BattleCommandLog command [T.FailureBecauseDeath]
+          exec True False = return $ T.BattleCommandLog command [T.Underqualified]
+          exec True True = execAction p c a t >>= \r -> return (T.BattleCommandLog command r)
 
 cutoffHpMp :: BattleMachine ()
 cutoffHpMp = do
@@ -120,12 +123,13 @@ cutoffHpMp = do
                   cardNum = length $ e ^. T.playerAccessor p
           cutoff s p = T.CardState (min (s ^. T.hp) (p ^. T.maxHp)) (min (s ^. T.mp) (p ^. T.maxMp))
 
-consumeTurn :: BattleMachine ()
+consumeTurn :: BattleMachine [T.EffectExpiration]
 consumeTurn = do
     (e, s) <- get
     let consumed = map consume (s ^. T.effects)
-    filtered <- filterM activeEffect consumed
-    put (e, (s & T.effects .~ filtered) & T.turn %~ (+1))
+    (active, expired) <- partitionM activeEffect consumed
+    put (e, (s & T.effects .~ active) & T.turn %~ (+1))
+    return $ map (T.EffectExpiration . (^. _1)) expired
         where consume (x, n) = (x, n - 1)
 
 enumerateCommandChoice :: T.Player -> BattleMachine [T.CommandChoice]
@@ -157,3 +161,11 @@ activeEffect (effect, remaining) =
         then return False
         else get >>= \(_, s) -> isCardAlive s t
     where t = effect ^. T.target
+
+partitionM :: (Monad m) => (a -> m Bool) -> [a] -> m ([a], [a])
+partitionM p = foldM (selectM p) ([], [])
+
+selectM :: (Monad m) => (a -> m Bool) -> ([a], [a]) -> a -> m ([a], [a])
+selectM p (ts, fs) x = p x >>= apply
+    where apply True = return (x : ts, fs)
+          apply _ = return (ts, x : fs)

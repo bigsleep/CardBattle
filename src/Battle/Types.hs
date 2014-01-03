@@ -25,6 +25,7 @@ module Battle.Types
     , ActionChoice(..)
     , CommandChoice(..)
     , ActionResult(..)
+    , EffectExpiration(..)
     , BattleLog(..)
     , BattleCommandLog(..)
     , playerAccessor
@@ -235,7 +236,7 @@ data BattleLog = BattleLog BattleState [BattleCommandLog] [EffectExpiration] der
 $(deriveJSON id ''BattleLog)
 
 -- BattleTurn
-type BattleTurn = ErrorT String (RWS BattleSetting [BattleCommandLog] BattleState)
+type BattleTurn = ErrorT String (RWS BattleSetting () BattleState)
 
 onTarget :: Player -> Int -> Target -> Bool
 onTarget _ _ TargetAll = True

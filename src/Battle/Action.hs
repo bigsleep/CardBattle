@@ -14,11 +14,10 @@ import Prelude hiding (lookup)
 import Control.Monad (forM, filterM, liftM)
 import Control.Monad.State.Class (get, put)
 import Control.Monad.Reader.Class (ask)
-import Control.Monad.Writer.Class (tell)
 import Control.Monad.Error.Class (MonadError, throwError)
 import Control.Lens ((^.), (&), (%~), (.~), (^?), ix)
 
-execAction :: T.Player -> Int -> T.Action -> T.Target -> T.BattleTurn ()
+execAction :: T.Player -> Int -> T.Action -> T.Target -> T.BattleTurn [T.ActionResult]
 
 -- Attack
 execAction p c (T.Attack f) t = do
@@ -27,7 +26,7 @@ execAction p c (T.Attack f) t = do
     let attack' = (prop ^. T.attack * f) `div` P.factorDenominator
     let ts = Target.enumerateAsCards setting' t
     logs <- forM ts (attackOne attack')
-    tell [T.BattleCommandLog (T.BattleCommand p c (T.Attack f) t) (failureIfEmpty logs)]
+    return (failureIfEmpty logs)
 
 -- Defense
 execAction p c (T.Defense f) t = do
@@ -36,11 +35,11 @@ execAction p c (T.Defense f) t = do
     ts <- filterM (isCardAlive state) (Target.enumerateAsCards setting t)
     let effects = map effect ts
     if null effects
-        then tell [T.BattleCommandLog (T.BattleCommand p c (T.Defense f) t) [T.ActionFailure]]
+        then return [T.ActionFailure]
         else do
             let changes = map change effects
             put $ state & T.oneTurnEffects %~ (++ effects)
-            tell [T.BattleCommandLog (T.BattleCommand p c (T.Defense f) t) changes]
+            return changes
     where effect x = T.BattleEffect x T.DefenseTag f
           change x = T.PropertyChange (x ^. T.target) (x ^. T.property) (x ^. T.factor)
 
@@ -52,7 +51,7 @@ execAction p c (T.Heal a b) t = do
     let ts = Target.enumerateAsCards setting' t
     logs <- forM ts (healOne healHp)
     l <- consumeMp p c b
-    tell [T.BattleCommandLog (T.BattleCommand p c (T.Heal a b) t) (l : logs)]
+    return (l : logs)
 
 
 
@@ -63,12 +62,12 @@ execAction p c (T.Buff q f a b) t = do
     cs <- filterM (alive state) (Target.enumerateAsCards setting t)
     let effects = map (\x -> (T.BattleEffect x q f, a)) cs
     if null effects
-        then tell [T.BattleCommandLog (T.BattleCommand p c (T.Buff q f a b) t) [T.ActionFailure]]
+        then return [T.ActionFailure]
         else do
             let changes = map (\x -> T.PropertyChange x q f) cs
             put $ state & T.effects %~ (++ effects)
             l <- consumeMp p c b
-            tell [T.BattleCommandLog (T.BattleCommand p c (T.Buff q f a b) t) (l : changes)]
+            return (l : changes)
     where alive s (tp, tc) = case s ^? T.playerAccessor tp . ix tc of
                                   Just cstate -> return $ cstate ^. T.hp > 0
                                   Nothing -> throwError "in execAction. list index out of range."
