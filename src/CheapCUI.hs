@@ -27,8 +27,7 @@ runCUI (Pure _) = return ()
 
 runCUI (Free (LoadSetting f)) = do
     s <- lift $ BS.readFile "battleSetting.json"
-    setting <- lift . fromJust "設定ファイルのデコードに失敗しました。" . DA.decode $ s
-    lift $ print setting
+    setting <- lift . fromJust "設定ファイルのデコードに失敗しました" . DA.decode $ s
     put setting
     runCUI (f setting)
 
@@ -152,7 +151,7 @@ outputActionResult _ (T.Consume (p, c) s) = do
 
 outputActionResult setting (T.StateChange (p, c) s) = do
     card <- fromJust "out of range" $ setting ^? T.playerAccessor p . ix c
-    when (hp == 0 && mp == 0) (printf "%sのカード%d [%s] には効果がなかった。\n" (toS p) c (toS card))
+    when (hp == 0 && mp == 0) (printf "%sのカード%d [%s] には効果がなかった\n" (toS p) c (toS card))
     when (hp /= 0) (printf "%sのカード%d [%s] のHPが%d%s\n" (toS p) c (toS card) (abs hp) (signToS hp))
     when (mp /= 0) (printf "%sのカード%d [%s] のMPが%d%s\n" (toS p) c (toS card) (abs mp) (signToS mp))
     where hp = s ^. T.hp
@@ -168,16 +167,16 @@ outputActionResult setting (T.PropertyChange (p, c) property f) = do
 
 outputActionResult setting (T.Death (p, c)) = do
     card <- fromJust "out of range" $ setting ^? T.playerAccessor p . ix c
-    printf "%sのカード%d [%s] は死んだ。\n" (toS p) c (toS card)
+    printf "%sのカード%d [%s] は死んだ\n" (toS p) c (toS card)
 
 outputActionResult _ T.FailureBecauseDeath =
-    putStrLn "死んでいるため失敗した。"
+    putStrLn "死んでいるため失敗した"
 
 outputActionResult _ T.Underqualified =
-    putStrLn "できなかった。"
+    putStrLn "できなかった"
 
 outputActionResult _ T.ActionFailure =
-    putStrLn "失敗した。"
+    putStrLn "失敗した"
 
 outputCardState :: (Int, T.Card, T.CardState) -> IO ()
 outputCardState (i, c, s) = do
