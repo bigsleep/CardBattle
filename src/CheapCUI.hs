@@ -55,7 +55,7 @@ runCUI (Free (OutputBattleState s c)) = do
 runCUI (Free (OutputTurnResult l c)) = do
     setting <- get
     lift $ forM_ commandLogs (outputCommandLog setting)
---    forM_ effectExpirations outputEffectExpiration
+    lift $ forM_ effectExpirations (outputEffectExpiration setting)
     runCUI c
     where (T.BattleLog state commandLogs effectExpirations) = l
 
@@ -177,6 +177,12 @@ outputActionResult _ T.Underqualified =
 
 outputActionResult _ T.ActionFailure =
     putStrLn "失敗した"
+
+outputEffectExpiration :: T.BattleSetting -> T.EffectExpiration -> IO ()
+outputEffectExpiration setting expiration = do
+    card <- fromJust "out of range" $ setting ^? T.playerAccessor p . ix c
+    printf "%sのカード%d [%s] の %s への効果が切れた\n" (toS p) c (toS card) (toS property)
+    where (T.EffectExpiration (T.BattleEffect (p, c) property factor)) = expiration
 
 outputCardState :: (Int, T.Card, T.CardState) -> IO ()
 outputCardState (i, c, s) = do
