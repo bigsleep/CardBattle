@@ -35,7 +35,7 @@ expectedCard :: Card
 expectedCard = (Card "あああ" (PropertySet 0 0 0 0 0 0) [])
 
 skillJSON :: String
-skillJSON = "{\"Name\":\"skill\",\"Action\":{\"Attack\":100},\"Target\":0}}"
+skillJSON = "{\"Name\":\"skill\",\"Action\":{\"Attack\":100},\"Target\":0}"
 
 expectedSkill :: Skill
 expectedSkill = Skill "skill" (Attack 100) TcAlmighty

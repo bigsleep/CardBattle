@@ -71,8 +71,9 @@ import Control.Monad (mzero)
 import Control.Monad.Error (ErrorT)
 import Control.Monad.Trans.RWS (RWS)
 import qualified Data.Aeson as DA (Value(..), FromJSON, ToJSON, parseJSON, toJSON)
-import Data.Aeson.TH (deriveJSON)
-import qualified Data.Attoparsec.Number as N (Number(I))
+import qualified Data.Aeson.TH as DA (deriveJSON, Options(..), defaultOptions, SumEncoding(..))
+import qualified Data.Scientific as S (scientific, coefficient, base10Exponent)
+
 
 class (Enum a, Bounded a) => EnumJSON a
 
@@ -83,7 +84,7 @@ data Target =
     TargetAll |
     TargetTeam Player |
     TargetCard Player Int deriving (Show, Eq)
-$(deriveJSON id ''Target)
+$(DA.deriveJSON DA.defaultOptions ''Target)
 
 data PropertySet = PropertySet {
     _propertysetMaxHp :: Int,
@@ -94,7 +95,7 @@ data PropertySet = PropertySet {
     _propertysetMagic :: Int
     } deriving (Show, Eq)
 $(makeFields ''PropertySet)
-$(deriveJSON (drop (length "_propertyset")) ''PropertySet)
+$(DA.deriveJSON (DA.defaultOptions { DA.fieldLabelModifier = drop (length "_propertyset") }) ''PropertySet)
 
 data PropertyTag =
     MaxHpTag |
@@ -111,7 +112,7 @@ data Action =
     Heal Int Int |
     Buff PropertyTag Int Int Int
     deriving (Show, Eq, Ord)
-$(deriveJSON id ''Action)
+$(DA.deriveJSON DA.defaultOptions { DA.sumEncoding = DA.ObjectWithSingleField } ''Action)
 
 data TargetCapacity =
     TcAlmighty |
@@ -137,7 +138,7 @@ data Skill = Skill {
     _skillTarget :: TargetCapacity
     } deriving (Show, Eq)
 $(makeFields ''Skill)
-$(deriveJSON (drop (length "_skill")) ''Skill)
+$(DA.deriveJSON (DA.defaultOptions { DA.fieldLabelModifier = drop (length "_skill") }) ''Skill)
 
 data Card = Card {
     _cardName :: String,
@@ -145,14 +146,14 @@ data Card = Card {
     _cardSkills :: [Skill]
     } deriving (Show, Eq)
 $(makeFields ''Card)
-$(deriveJSON (drop (length "_card")) ''Card)
+$(DA.deriveJSON (DA.defaultOptions { DA.fieldLabelModifier = drop (length "_card") }) ''Card)
 
 data CardState = CardState {
     _cardstateHp :: Int,
     _cardstateMp :: Int
 } deriving (Show, Eq)
 $(makeFields ''CardState)
-$(deriveJSON (drop (length "_cardstate")) ''CardState)
+$(DA.deriveJSON (DA.defaultOptions { DA.fieldLabelModifier = drop (length "_cardstate") }) ''CardState)
 
 data BattleEffect = BattleEffect {
     _battleeffectTarget :: (Player, Int),
@@ -160,7 +161,7 @@ data BattleEffect = BattleEffect {
     _battleeffectFactor :: Int
     } deriving (Show, Eq)
 $(makeFields ''BattleEffect)
-$(deriveJSON (drop (length "_battleeffect")) ''BattleEffect)
+$(DA.deriveJSON (DA.defaultOptions { DA.fieldLabelModifier = drop (length "_battleeffect") }) ''BattleEffect)
 
 data BattleSetting = BattleSetting {
     _battlesettingFirst :: [Card],
@@ -168,7 +169,7 @@ data BattleSetting = BattleSetting {
     _battlesettingMaxTurn :: Maybe Int
     } deriving (Show, Eq)
 $(makeFields ''BattleSetting)
-$(deriveJSON (drop (length "_battlesetting")) ''BattleSetting)
+$(DA.deriveJSON (DA.defaultOptions { DA.fieldLabelModifier = drop (length "_battlesetting") }) ''BattleSetting)
 
 data BattleState = BattleState {
     _battlestateFirst :: [CardState],
@@ -178,7 +179,7 @@ data BattleState = BattleState {
     _battlestateTurn :: Int
     } deriving (Show, Eq)
 $(makeFields ''BattleState)
-$(deriveJSON (drop (length "_battlestate")) ''BattleState)
+$(DA.deriveJSON (DA.defaultOptions { DA.fieldLabelModifier = drop (length "_battlestate") }) ''BattleState)
 
 data PlayerCommand = PlayerCommand {
     _playercommandCardIndex :: Int,
@@ -186,7 +187,7 @@ data PlayerCommand = PlayerCommand {
     _playercommandTargetIndex :: Int
     } deriving (Show, Eq)
 $(makeFields ''PlayerCommand)
-$(deriveJSON (drop (length "_battlecommand")) ''PlayerCommand)
+$(DA.deriveJSON (DA.defaultOptions { DA.fieldLabelModifier = drop (length "_battlecommand") }) ''PlayerCommand)
 
 data BattleCommand = BattleCommand {
     _battlecommandPlayer :: Player,
@@ -196,7 +197,7 @@ data BattleCommand = BattleCommand {
     _battlecommandTarget :: Target
     } deriving (Show, Eq)
 $(makeFields ''BattleCommand)
-$(deriveJSON (drop (length "_battlecommand")) ''BattleCommand)
+$(DA.deriveJSON (DA.defaultOptions { DA.fieldLabelModifier = drop (length "_battlecommand") }) ''BattleCommand)
 
 data ActionChoice = ActionChoice {
     _actionchoiceSkillIndex :: Int,
@@ -204,14 +205,14 @@ data ActionChoice = ActionChoice {
     _actionchoiceTargets :: [Target]
     } deriving (Show, Eq)
 $(makeFields ''ActionChoice)
-$(deriveJSON (drop (length "_actionchoice")) ''ActionChoice)
+$(DA.deriveJSON (DA.defaultOptions { DA.fieldLabelModifier = drop (length "_actionchoice") }) ''ActionChoice)
 
 data CommandChoice = CommandChoice {
     _commandchoiceCardIndex :: Int,
     _commandchoiceActions :: [ActionChoice]
     } deriving (Show, Eq)
 $(makeFields ''CommandChoice)
-$(deriveJSON (drop (length "_commandchoice")) ''CommandChoice)
+$(DA.deriveJSON (DA.defaultOptions { DA.fieldLabelModifier = drop (length "_commandchoice") }) ''CommandChoice)
 
 -- log
 data ActionResult =
@@ -222,17 +223,17 @@ data ActionResult =
     FailureBecauseDeath |
     Underqualified |
     ActionFailure deriving (Show, Eq)
-$(deriveJSON id ''ActionResult)
+$(DA.deriveJSON DA.defaultOptions ''ActionResult)
 
 newtype EffectExpiration = EffectExpiration BattleEffect deriving (Show, Eq)
-$(deriveJSON id ''EffectExpiration)
+$(DA.deriveJSON DA.defaultOptions ''EffectExpiration)
 
 data BattleCommandLog =
     BattleCommandLog BattleCommand [ActionResult] deriving (Show, Eq)
-$(deriveJSON id ''BattleCommandLog)
+$(DA.deriveJSON DA.defaultOptions ''BattleCommandLog)
 
 data BattleLog = BattleLog BattleState [BattleCommandLog] [EffectExpiration] deriving (Show, Eq)
-$(deriveJSON id ''BattleLog)
+$(DA.deriveJSON DA.defaultOptions ''BattleLog)
 
 -- BattleTurn
 type BattleTurn = ErrorT String (RWS BattleSetting () BattleState)
@@ -262,13 +263,14 @@ opponentPlayer SecondPlayer = FirstPlayer
 
 -- for Enum conversion
 instance (EnumJSON a) => DA.FromJSON a where
-    parseJSON (DA.Number (N.I i)) = case safeToEnum $ fromInteger i of
-                                         Just e -> return e
-                                         Nothing -> mzero
+    parseJSON (DA.Number s) = case safeToEnum $ fromInteger c of
+                                   Just e -> return e
+                                   Nothing -> mzero
+                              where c = S.coefficient s
     parseJSON _ = mzero
 
 instance (EnumJSON a) => DA.ToJSON a where
-    toJSON e = DA.Number . N.I . toInteger . fromEnum $ e
+    toJSON e = DA.Number . flip S.scientific 0 . toInteger . fromEnum $ e
 
 safeToEnum :: forall t . (Enum t, Bounded t) => Int -> Maybe t
 safeToEnum i = if (i >= fromEnum (minBound :: t)) && (i <= fromEnum (maxBound :: t))
